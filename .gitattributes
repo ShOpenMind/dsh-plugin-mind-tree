@@ -1,0 +1,13 @@
+# 统一换行,保证跨平台与 CI 的"构建产物一致性"检查稳定。
+* text=auto eol=lf
+
+# 二进制/压缩文件不做换行转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zstd binary
+*.woff binary
+*.woff2 binary

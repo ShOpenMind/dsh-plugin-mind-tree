@@ -1,0 +1,12 @@
+# pnpm 工作区配置。
+# 构建 lib/client.js 需要 esbuild 运行其安装脚本(下载/链接平台二进制),因此放行 esbuild;
+# 其余包(DSH 内部依赖等)不需要在本仓库执行安装脚本,保持忽略。
+allowBuilds:
+  esbuild: true
+  '@deepseek-ai/dsh-subprocess-local': false
+  '@google/genai': false
+  koffi: false
+  node-pty: false
+  protobufjs: false
+
+autoInstallPeers: false

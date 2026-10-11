@@ -1,0 +1,23 @@
+# 依赖
+node_modules/
+.pnpm-store/
+
+# 构建与导出产物(本地备份/导出可能含真实会话内容,绝不提交)
+exports/
+mindtree-export/
+dist/
+*.tsbuildinfo
+
+# 日志与临时文件
+*.log
+npm-debug.log*
+pnpm-debug.log*
+*.tmp
+.tmp/
+
+# 编辑器 / 操作系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

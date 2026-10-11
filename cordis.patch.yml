@@ -1,0 +1,4 @@
+# 仅添加本插件行,不替换任何官方 DSH 组件。
+- insert:
+    - id: mind-tree
+      name: dsh-plugin-mind-tree
