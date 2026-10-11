@@ -72,10 +72,27 @@
 
 ## 安装
 
-在 DeepSeek Harness 中通过插件管理器安装本包（或本地路径）：
+**方式一（推荐）**：在 DeepSeek Harness 的**插件页 → 添加插件**里填入以下任一项，然后启用：
+
+| 来源 | 填什么 |
+|---|---|
+| npm（发布后） | `dsh-plugin-mind-tree` |
+| GitHub 仓库 | `https://github.com/<owner>/dsh-plugin-mind-tree` |
+| 本地目录（开发用） | `/absolute/path/to/dsh-plugin-mind-tree` |
+
+**方式二（CLI）**：`dsh plugin` 子命令把参数转发给档案目录下的 pnpm，因此用 `add`：
 
 ```sh
-dsh plugin install /absolute/path/to/dsh-plugin-mind-tree
+dsh plugin --profile <档案名> add /absolute/path/to/dsh-plugin-mind-tree
+# GitHub / npm 同理：dsh plugin --profile <档案名> add https://github.com/<owner>/dsh-plugin-mind-tree
+```
+
+装好后仍需在插件页**启用**（`plugin add` 只装包，启用由插件页或档案的 `dsh.profile.bundles` 负责）。
+
+**方式三（跨平台运行 DSH）**：任意系统（Windows / macOS / Linux）只需 Node 22+：
+
+```sh
+npx @deepseek-ai/dsh web     # 浏览器打开 http://127.0.0.1:3080
 ```
 
 安装后右侧栏会出现「思维树」标签页（默认会自动打开；也可从右侧栏的开始页进入，或用会话行菜单打开）。
