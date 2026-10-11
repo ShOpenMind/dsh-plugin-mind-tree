@@ -8,11 +8,13 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        # macOS 与 Linux 都跑,验证跨平台(插件纯 JS、无原生依赖)
+        os: [ubuntu-latest, macos-latest]
         node: [22, 24]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
 
