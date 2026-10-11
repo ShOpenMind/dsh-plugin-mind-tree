@@ -1,0 +1,41 @@
+name: test
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建客户端 bundle
+        run: pnpm run build
+
+      - name: 构建产物与提交内容一致(防止忘记重新构建)
+        run: git diff --exit-code -- lib/client.js
+
+      - name: 运行全部测试
+        run: pnpm test
+
+      - name: 打包产物自检(npm pack 内容清单)
+        run: npm pack --dry-run
