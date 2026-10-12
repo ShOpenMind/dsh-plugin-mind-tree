@@ -77,14 +77,14 @@
 | 来源 | 填什么 |
 |---|---|
 | npm（发布后） | `dsh-plugin-mind-tree` |
-| GitHub 仓库 | `https://github.com/<owner>/dsh-plugin-mind-tree` |
+| GitHub 仓库 | `https://github.com/ShOpenMind/dsh-plugin-mind-tree` |
 | 本地目录（开发用） | `/absolute/path/to/dsh-plugin-mind-tree` |
 
 **方式二（CLI）**：`dsh plugin` 子命令把参数转发给档案目录下的 pnpm，因此用 `add`：
 
 ```sh
 dsh plugin --profile <档案名> add /absolute/path/to/dsh-plugin-mind-tree
-# GitHub / npm 同理：dsh plugin --profile <档案名> add https://github.com/<owner>/dsh-plugin-mind-tree
+# GitHub / npm 同理：dsh plugin --profile <档案名> add https://github.com/ShOpenMind/dsh-plugin-mind-tree
 ```
 
 装好后仍需在插件页**启用**（`plugin add` 只装包，启用由插件页或档案的 `dsh.profile.bundles` 负责）。
