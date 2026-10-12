@@ -1,4 +1,5 @@
 // dsh-plugin-mind-tree 网页客户端半区(构建前源码,经 tools/build.mjs 打包为 lib/client.js)。
+// Copyright (c) 2026 ShOpenMind · https://github.com/ShOpenMind/dsh-plugin-mind-tree · MIT
 // 在右侧栏注册"思维树"标签页:思维树 / 会话血缘 / 会话森林三种视图 + 分支节点详情。
 // 入口为纯 CJS(require 形式),与官方静态插件(whale-pet)的加载模式完全一致。
 const React = require('react');
@@ -38,6 +39,7 @@ const DIAG = {
   menuClicks: 0,
   hostWarnings: [],
   hostFields: [],
+  author: 'ShOpenMind · https://github.com/ShOpenMind/dsh-plugin-mind-tree',
   detailLevel: 'compact',
   rawNodeCount: 0,
   reducedNodeCount: 0,
@@ -1554,7 +1556,8 @@ module.exports = {
           },
           description: () => {
             const language = currentLanguage;
-            return MESSAGES[language]?.['tab.guide'] ?? MESSAGES.zh['tab.guide'];
+            const base = MESSAGES[language]?.['tab.guide'] ?? MESSAGES.zh['tab.guide'];
+            return `${base}\n作者:ShOpenMind · github.com/ShOpenMind/dsh-plugin-mind-tree`;
           },
         }],
       });

@@ -2,6 +2,8 @@
 
 遍历 DeepSeek Harness 的对话上下文，列出对话中的分支节点，并把它们渲染成思维树。
 
+> 作者：**ShOpenMind** · 仓库：<https://github.com/ShOpenMind/dsh-plugin-mind-tree> · MIT License
+
 ## 功能
 
 - **思维树**：遍历当前会话的完整事件日志，把「轮次 → 消息 → 工具调用 → 结果」组织成**紧凑纵向大纲树**

@@ -4,6 +4,11 @@
   "description": "遍历对话上下文，识别分支节点并渲染思维树/会话树的 DeepSeek Harness 插件（右侧栏 GUI + mind_tree 工具 + Obsidian 导出）。",
   "type": "module",
   "license": "MIT",
+  "author": {
+    "name": "ShOpenMind",
+    "email": "ShOpenMind@users.noreply.github.com",
+    "url": "https://github.com/ShOpenMind/dsh-plugin-mind-tree"
+  },
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
