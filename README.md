@@ -141,3 +141,9 @@ pnpm run test:host     # 只跑某套:host / reduce / client / mount / render / 
 - 客户端半区在右侧栏注册「思维树」标签页，用 SVG 渲染树（折叠/搜索/导出/三档信息量）。
 
 本插件只读会话数据：不写入会话、不发起模型调用、不上传任何数据。
+
+## 第三方依赖与许可
+
+- **运行时依赖**:[zod](https://github.com/colinhacks/zod)(MIT)。为避免宿主要求加载,其代码随客户端构建产物 `lib/client.js` 内联分发(约 900 KB),其许可证随附于 zod 项目;
+- `@deepseek-ai/*` 系列包作为外部依赖由 DeepSeek Harness 宿主提供,不在本仓库内分发;
+- **开发依赖**(仅构建/测试使用):esbuild(MIT)、react / react-dom(MIT)、happy-dom(MIT)、mermaid(MIT)。
