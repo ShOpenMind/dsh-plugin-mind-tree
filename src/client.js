@@ -41,6 +41,7 @@ const DIAG = {
   hostFields: [],
   author: 'ShOpenMind · https://github.com/ShOpenMind/dsh-plugin-mind-tree',
   detailLevel: 'compact',
+  palettePreset: 'soft',
   rawNodeCount: 0,
   reducedNodeCount: 0,
   foldedTools: 0,
@@ -124,6 +125,34 @@ const MESSAGES = {
     'level.full.hint': '全部节点,与事件日志一一对应',
     'node.toolgroup': '工具活动',
     'detail.grouped': '折叠的工具调用',
+    'expand.short': '展开',
+    'collapse.short': '折叠',
+    'palette.button': '配色',
+    'palette.preset': '预设',
+    'palette.soft': '柔和',
+    'palette.vivid': '鲜明',
+    'palette.slate': '灰蓝',
+    'palette.reset': '恢复默认(柔和)',
+    'palette.hint': '点色块可逐类调整;选择会保存在本机',
+    'color.turn': '轮次',
+    'color.user': '用户消息',
+    'color.assistant': '助手回复',
+    'color.tool': '工具调用',
+    'color.toolgroup': '工具活动(聚合)',
+    'color.result': '工具结果',
+    'color.session': '子会话',
+    'color.goal': '目标变化',
+    'color.todo': '任务分解',
+    'color.plan': '计划模式',
+    'color.compaction': '上下文压缩',
+    'color.retry': '生成重试',
+    'color.approval': '批准决策',
+    'color.team': '团队协作',
+    'color.info': '系统信息',
+    'color.branchUser': '分支·用户',
+    'color.branchAssistant': '分支·助手',
+    'color.error': '出错',
+    'color.shadowed': '已脱离上下文',
     'retry': '重试',
     'token.input': '输入',
     'token.output': '输出',
@@ -212,6 +241,34 @@ const MESSAGES = {
     'level.full.hint': 'Every node, one-to-one with the event log',
     'node.toolgroup': 'Tool activity',
     'detail.grouped': 'Folded tool calls',
+    'expand.short': 'Expand',
+    'collapse.short': 'Collapse',
+    'palette.button': 'Colors',
+    'palette.preset': 'Presets',
+    'palette.soft': 'Soft',
+    'palette.vivid': 'Vivid',
+    'palette.slate': 'Slate',
+    'palette.reset': 'Reset to Soft',
+    'palette.hint': 'Click a swatch to tune each kind; saved locally',
+    'color.turn': 'Turn',
+    'color.user': 'User message',
+    'color.assistant': 'Assistant reply',
+    'color.tool': 'Tool call',
+    'color.toolgroup': 'Tool activity (grouped)',
+    'color.result': 'Tool result',
+    'color.session': 'Sub-session',
+    'color.goal': 'Goal change',
+    'color.todo': 'Task breakdown',
+    'color.plan': 'Plan mode',
+    'color.compaction': 'Compaction',
+    'color.retry': 'Retry',
+    'color.approval': 'Approval',
+    'color.team': 'Team',
+    'color.info': 'System info',
+    'color.branchUser': 'Branch · user',
+    'color.branchAssistant': 'Branch · assistant',
+    'color.error': 'Error',
+    'color.shadowed': 'Out of context',
     'retry': 'Retry',
     'token.input': 'input',
     'token.output': 'output',
@@ -359,23 +416,93 @@ function GlyphRefresh({ size = 14 }) {
     h('path', { d: 'M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v2.6h-2.6', stroke: 'currentColor', strokeWidth: 1.3, strokeLinecap: 'round', strokeLinejoin: 'round' }));
 }
 
-const KIND_COLORS = {
-  turn: { fill: 'var(--mt-turn, #8b5cf6)', ink: '#ffffff' },
-  user: { fill: 'var(--mt-user, #2563eb)', ink: '#ffffff' },
-  assistant: { fill: 'var(--mt-assistant, #059669)', ink: '#ffffff' },
-  tool: { fill: 'var(--mt-tool, #7c3aed)', ink: '#ffffff' },
-  toolgroup: { fill: 'var(--mt-toolgroup, #6d28d9)', ink: '#ffffff' },
-  result: { fill: 'var(--mt-result, #52525b)', ink: '#ffffff' },
-  session: { fill: 'var(--mt-session, #b45309)', ink: '#ffffff' },
-  retry: { fill: 'var(--mt-retry, #c2410c)', ink: '#ffffff' },
-  approval: { fill: 'var(--mt-approval, #be185d)', ink: '#ffffff' },
-  goal: { fill: 'var(--mt-goal, #0e7490)', ink: '#ffffff' },
-  todo: { fill: 'var(--mt-todo, #4d7c0f)', ink: '#ffffff' },
-  plan: { fill: 'var(--mt-plan, #0369a1)', ink: '#ffffff' },
-  compaction: { fill: 'var(--mt-compaction, #57534e)', ink: '#ffffff' },
-  team: { fill: 'var(--mt-team, #a21caf)', ink: '#ffffff' },
-  info: { fill: 'var(--mt-info, #64748b)', ink: '#ffffff' },
+// ---------------- 配色系统:预设 + 自定义 ----------------
+// 行填充通过 CSS 变量注入到 .mt-root,因此换配色只需改一组变量,组件无需感知。
+const COLOR_KINDS = [
+  'turn', 'user', 'assistant', 'tool', 'toolgroup', 'result',
+  'session', 'goal', 'todo', 'plan', 'compaction', 'retry', 'approval', 'team', 'info',
+  'branchUser', 'branchAssistant', 'error', 'shadowed',
+];
+const COLOR_VARS = {
+  turn: '--mt-turn', user: '--mt-user', assistant: '--mt-assistant', tool: '--mt-tool',
+  toolgroup: '--mt-toolgroup', result: '--mt-result', session: '--mt-session',
+  goal: '--mt-goal', todo: '--mt-todo', plan: '--mt-plan', compaction: '--mt-compaction',
+  retry: '--mt-retry', approval: '--mt-approval', team: '--mt-team', info: '--mt-info',
+  branchUser: '--mt-branch-user', branchAssistant: '--mt-branch-assistant',
+  error: '--mt-error', shadowed: '--mt-shadowed',
 };
+/** 预设配色:soft 为默认 —— 降饱和、提高白字对比,长时间看不刺眼。 */
+const PALETTES = {
+  soft: {
+    turn: '#6b63b5', user: '#3b6fa8', assistant: '#2f7a61', tool: '#6a4c93', toolgroup: '#5b4180',
+    result: '#4a5568', session: '#8a5a2b', goal: '#2c6e78', todo: '#5a7a2e', plan: '#32638c',
+    compaction: '#5a5560', retry: '#9c5a2c', approval: '#9a4a6b', team: '#8a4a82', info: '#556070',
+    branchUser: '#2f5f92', branchAssistant: '#276b55', error: '#a6392f', shadowed: '#cbd5e1',
+  },
+  vivid: {
+    turn: '#8b5cf6', user: '#2563eb', assistant: '#059669', tool: '#7c3aed', toolgroup: '#6d28d9',
+    result: '#52525b', session: '#b45309', goal: '#0e7490', todo: '#4d7c0f', plan: '#0369a1',
+    compaction: '#57534e', retry: '#c2410c', approval: '#be185d', team: '#a21caf', info: '#64748b',
+    branchUser: '#1d4ed8', branchAssistant: '#047857', error: '#b91c1c', shadowed: '#cbd5e1',
+  },
+  slate: {
+    turn: '#5b6478', user: '#3f5a7a', assistant: '#42685c', tool: '#5a5670', toolgroup: '#4d4a63',
+    result: '#4b5563', session: '#6f5a42', goal: '#3f6470', todo: '#556b3c', plan: '#3c5f7d',
+    compaction: '#565248', retry: '#7a5540', approval: '#6f4a5c', team: '#6a4a66', info: '#5a6472',
+    branchUser: '#3a5573', branchAssistant: '#3d6055', error: '#8f4038', shadowed: '#cbd5e1',
+  },
+};
+const DEFAULT_PRESET = 'soft';
+const PALETTE_STORAGE_KEY = 'dsh-mind-tree.palette';
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+function hexToRgb(hex) {
+  if (!HEX_RE.test(String(hex))) return { r: 255, g: 255, b: 255 };
+  return {
+    r: parseInt(String(hex).slice(1, 3), 16),
+    g: parseInt(String(hex).slice(3, 5), 16),
+    b: parseInt(String(hex).slice(5, 7), 16),
+  };
+}
+
+/** 相对亮度(WCAG)。 */
+function relativeLuminance({ r, g, b }) {
+  const channel = (value) => {
+    const v = value / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+
+/** 按对比度自动选字色:白字对比不足 4.5:1 时改用深色字。 */
+function inkFor(hex, light = '#ffffff', dark = '#1f2937') {
+  const contrast = 1.05 / (relativeLuminance(hexToRgb(hex)) + 0.05);
+  return contrast >= 4.5 ? light : dark;
+}
+
+/** 读取本地保存的配色;任何异常都回退到默认预设。 */
+function loadPalette() {
+  const fallback = { preset: DEFAULT_PRESET, colors: { ...PALETTES[DEFAULT_PRESET] } };
+  try {
+    const raw = window?.localStorage?.getItem(PALETTE_STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    const colors = { ...fallback.colors };
+    if (parsed && typeof parsed.colors === 'object' && parsed.colors !== null) {
+      for (const key of COLOR_KINDS) {
+        if (HEX_RE.test(String(parsed.colors[key] ?? ''))) colors[key] = String(parsed.colors[key]);
+      }
+    }
+    const preset = typeof parsed?.preset === 'string' && (PALETTES[parsed.preset] || parsed.preset === 'custom')
+      ? parsed.preset
+      : 'custom';
+    return { preset, colors };
+  } catch { return fallback; }
+}
+
+function savePalette(palette) {
+  try { window?.localStorage?.setItem(PALETTE_STORAGE_KEY, JSON.stringify(palette)); } catch { /* 忽略 */ }
+}
 
 const BRANCH_MARKS = {
   replace: '替', retry: '试', question: '问', approval: '批', spawn: '派', fork: '叉',
@@ -477,13 +604,18 @@ function clampLabel(label, max = 42) {
   return label.length > max ? `${label.slice(0, max - 1)}…` : label;
 }
 
-function nodeColor(node) {
-  if (node.surface === 'shadowed') return { fill: 'var(--mt-shadowed, #cbd5e1)', ink: '#475569' };
-  const base = KIND_COLORS[node.kind] ?? KIND_COLORS.info;
-  if (node.branch && node.kind === 'user') return { fill: 'var(--mt-branch-user, #1d4ed8)', ink: '#ffffff' };
-  if (node.branch && node.kind === 'assistant') return { fill: 'var(--mt-branch-assistant, #047857)', ink: '#ffffff' };
-  if (node.branch && node.error) return { fill: 'var(--mt-error, #b91c1c)', ink: '#ffffff' };
-  return base;
+function nodeColor(node, palette) {
+  const colors = palette?.colors ?? PALETTES[DEFAULT_PRESET];
+  const pick = (key) => (HEX_RE.test(String(colors?.[key] ?? '')) ? colors[key] : PALETTES[DEFAULT_PRESET][key]);
+  const wrap = (key) => {
+    const hex = pick(key);
+    return { fill: `var(${COLOR_VARS[key]}, ${hex})`, ink: inkFor(hex) };
+  };
+  if (node.surface === 'shadowed') return wrap('shadowed');
+  if (node.branch && node.kind === 'user') return wrap('branchUser');
+  if (node.branch && node.kind === 'assistant') return wrap('branchAssistant');
+  if (node.branch && node.error) return wrap('error');
+  return wrap(COLOR_VARS[node.kind] ? node.kind : 'info');
 }
 
 /** 大纲连接线:父行左轨 → 子行左端。 */
@@ -567,13 +699,13 @@ function flattenFiltered(data, query) {
   return { rows, index, matches };
 }
 
-function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJump, t }) {
+function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJump, t, palette }) {
   const { node, depth, kidCount, collapsed } = row;
   const x = PAD_X + depth * INDENT;
   const railX = x + 7;
   const rowWidth = Math.max(120, width - x - PAD_X * 2);
   const y = PAD_Y + row.index * ROW_H;
-  const { fill, ink } = nodeColor(node);
+  const { fill, ink } = nodeColor(node, palette);
   const shadowed = node.surface === 'shadowed';
   const isTurn = node.kind === 'turn';
   const usage = node.usage;
@@ -622,7 +754,7 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
   },
     h('rect', {
       x, y: 2, width: rowWidth, height: ROW_H - 6, rx: 6, ry: 6,
-      fill, opacity: shadowed ? 0.45 : 0.93,
+      fill, opacity: shadowed ? 0.5 : 0.97,
       stroke: highlighted ? '#f59e0b' : (selected ? 'var(--dsw-alias-brand-primary, #111827)' : 'none'),
       strokeWidth: highlighted ? 2 : (selected ? 2 : 0),
       strokeDasharray: highlighted ? '4 3' : undefined,
@@ -650,7 +782,7 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
     }, label),
     summaryText && h('text', {
       x: summaryX, y: 21, fontSize: 11,
-      fill: shadowed ? '#94a3b8' : ink, opacity: shadowed ? 0.9 : 0.82,
+      fill: shadowed ? '#64748b' : ink, opacity: 0.9,
       style: { userSelect: 'none' },
     }, summaryText),
     jumpX !== null && h('g', {
@@ -676,7 +808,7 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
     h('title', null, title));
 }
 
-function TreeCanvas({ data, collapsed, query, onToggle, onSelect, onJump, selectedId, t, width }) {
+function TreeCanvas({ data, collapsed, query, onToggle, onSelect, onJump, selectedId, t, width, palette }) {
   const searching = typeof query === 'string' && query.trim() !== '';
   let rows;
   let index;
@@ -751,7 +883,7 @@ function TreeCanvas({ data, collapsed, query, onToggle, onSelect, onJump, select
         key: row.node.id, row, width: canvasWidth,
         selected: row.node.id === selectedId,
         highlighted: searching && matches.has(row.node.id),
-        onSelect, onToggle, onJump, t,
+        onSelect, onToggle, onJump, t, palette,
       })),
       searching && rows.length === 0 && h('text', {
         x: canvasWidth / 2, y: 70, fontSize: 12, textAnchor: 'middle',
@@ -977,6 +1109,41 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
   }, []);
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
   const exportMenuRef = React.useRef(null);
+  // 配色:预设 + 自定义,持久化到 localStorage(换配色只改 .mt-root 上的 CSS 变量)。
+  const [palette, setPalette] = React.useState(() => loadPalette());
+  const [paletteMenuOpen, setPaletteMenuOpen] = React.useState(false);
+  const paletteMenuRef = React.useRef(null);
+  const paletteStyle = React.useMemo(() => {
+    const style = {};
+    for (const key of COLOR_KINDS) style[COLOR_VARS[key]] = palette.colors[key];
+    return style;
+  }, [palette]);
+  DIAG.palettePreset = palette.preset;
+  const applyPalette = React.useCallback((next) => {
+    setPalette(next);
+    savePalette(next);
+  }, []);
+  const applyPreset = React.useCallback((preset) => {
+    if (!PALETTES[preset]) return;
+    applyPalette({ preset, colors: { ...PALETTES[preset] } });
+  }, [applyPalette]);
+  const setColor = React.useCallback((key, value) => {
+    if (!HEX_RE.test(String(value ?? ''))) return;
+    setPalette((prev) => {
+      const next = { preset: 'custom', colors: { ...prev.colors, [key]: value } };
+      savePalette(next);
+      return next;
+    });
+  }, []);
+  React.useEffect(() => {
+    if (!paletteMenuOpen) return undefined;
+    const close = (event) => {
+      const node = paletteMenuRef.current;
+      if (node && typeof node.contains === 'function' && !node.contains(event.target)) setPaletteMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [paletteMenuOpen]);
   React.useEffect(() => {
     if (!exportMenuOpen) return undefined;
     const close = (event) => {
@@ -1296,7 +1463,7 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
     }
   };
 
-  return h(Boundary, null, h('div', { className: 'mt-root' },
+  return h(Boundary, null, h('div', { className: 'mt-root', style: paletteStyle },
     h('div', { className: 'mt-toolbar' },
       h('div', { className: 'mt-toolbar-left' }, viewButtons),
       h('div', { className: 'mt-toolbar-right' },
@@ -1305,8 +1472,39 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
           title: failed ? String(DIAG.lastError ?? '') : '',
         }, failed ? t('status.failed') : service ? t('status.ready') : t('status.connecting')),
         h('span', { className: 'mt-level-group', title: t('level.hint') }, levelButtons),
-        h('button', { className: 'mt-btn', onClick: expandAll, title: t('expandAll') }, t('expandAll')),
-        h('button', { className: 'mt-btn', onClick: collapseAll, title: t('collapseAll') }, t('collapseAll')),
+        h('button', { className: 'mt-btn', onClick: expandAll, title: t('expandAll') }, t('expand.short')),
+        h('button', { className: 'mt-btn', onClick: collapseAll, title: t('collapseAll') }, t('collapse.short')),
+        h('div', { className: 'mt-menu-wrap', ref: paletteMenuRef },
+          h('button', {
+            className: 'mt-btn',
+            onClick: () => setPaletteMenuOpen((open) => !open),
+            title: t('palette.button'),
+          }, `${t('palette.button')} ▾`),
+          paletteMenuOpen && h('div', { className: 'mt-menu mt-menu-wide' },
+            h('div', { className: 'mt-menu-title' }, t('palette.preset')),
+            h('div', { className: 'mt-preset-row' },
+              ['soft', 'vivid', 'slate'].map((preset) => h('button', {
+                key: preset,
+                className: `mt-btn mt-btn-level ${palette.preset === preset ? 'mt-btn-on' : ''}`,
+                onClick: () => applyPreset(preset),
+              }, t(`palette.${preset}`)))),
+            h('div', { className: 'mt-color-list' },
+              COLOR_KINDS.map((key) => h('label', { className: 'mt-color-row', key },
+                h('input', {
+                  className: 'mt-color-input',
+                  type: 'color',
+                  value: palette.colors[key],
+                  // onInput 直连原生 input 事件;onChange 作为兼容补充(两者同值时幂等)。
+                  onInput: (event) => setColor(key, event.target.value),
+                  onChange: (event) => setColor(key, event.target.value),
+                }),
+                h('span', { className: 'mt-color-swatch', style: { background: palette.colors[key] } }),
+                h('span', { className: 'mt-color-name' }, t(`color.${key}`))))),
+            h('button', {
+              className: 'mt-menu-item',
+              onClick: () => { applyPreset(DEFAULT_PRESET); },
+            }, t('palette.reset')),
+            h('div', { className: 'mt-menu-hint' }, t('palette.hint')))),
         h('div', { className: 'mt-menu-wrap', ref: exportMenuRef },
           h('button', {
             className: 'mt-btn',
@@ -1366,6 +1564,7 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
       !failed && data != null && nodes.length > 0 && h(TreeCanvas, {
         // 带上 reduction 等元数据(诊断探针与提示需要),节点/边用削减后的集合。
         data: { ...data, nodes, edges: data.edges ?? [] },
+        palette,
         collapsed,
         query,
         onToggle: toggle,
@@ -1427,10 +1626,10 @@ module.exports = {
     style.textContent = `
 .mt-root{display:flex;flex-direction:column;height:100%;min-height:220px;font-size:12px;color:var(--dsw-alias-label-primary,#111827);background:var(--dsw-alias-bg-base,#fff)}
 .mt-root *{box-sizing:border-box}
-.mt-toolbar{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.08))}
-.mt-toolbar-left{display:flex;gap:4px}
-.mt-toolbar-right{display:flex;gap:4px}
-.mt-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.16));border-radius:6px;background:var(--dsw-alias-bg-layer-1,#fafafa);color:var(--dsw-alias-label-primary,#111827);font-size:11.5px;cursor:pointer}
+.mt-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 6px;padding:6px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.08))}
+.mt-toolbar-left{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.mt-toolbar-right{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-left:auto;justify-content:flex-end}
+.mt-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid var(--dsw-alias-border-l2,rgba(0,0,0,.16));border-radius:6px;background:var(--dsw-alias-bg-layer-1,#fafafa);color:var(--dsw-alias-label-primary,#111827);font-size:11.5px;cursor:pointer;white-space:nowrap;flex:0 0 auto}
 .mt-btn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(38,49,72,.06))}
 .mt-btn-on{background:var(--dsw-alias-brand-primary,#111827);color:var(--dsw-alias-label-primary-foreground,#fff);border-color:var(--dsw-alias-brand-primary,#111827)}
 .mt-btn-primary{background:var(--dsw-alias-brand-primary,#111827);color:var(--dsw-alias-label-primary-foreground,#fff)}
@@ -1445,9 +1644,18 @@ module.exports = {
 .mt-export-notice{font-size:10.5px;color:var(--dsw-alias-state-success-primary,#059669);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mt-warn{margin:4px 8px 0;padding:5px 8px;border-radius:6px;font-size:10.5px;line-height:1.5;color:var(--dsw-alias-state-warning-primary,#b45309);background:color-mix(in srgb, var(--dsw-alias-state-warning-primary,#b45309) 12%, transparent);border:1px solid color-mix(in srgb, var(--dsw-alias-state-warning-primary,#b45309) 35%, transparent)}
 .mt-warn-title{font-weight:600}
-.mt-level-group{display:inline-flex;gap:2px;padding:1px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.04))}
+.mt-level-group{display:inline-flex;flex:0 0 auto;gap:2px;padding:1px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.04))}
 .mt-btn-level{padding:3px 6px;font-size:10.5px;opacity:.75}
 .mt-btn-level.mt-btn-on{opacity:1;background:var(--dsw-alias-bg-layer-1,#fff);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.mt-menu-wide{min-width:250px;max-height:70vh;overflow:auto}
+.mt-menu-title{padding:4px 9px 2px;font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-secondary,#61666b)}
+.mt-preset-row{display:flex;gap:4px;padding:2px 6px 6px}
+.mt-color-list{display:grid;grid-template-columns:1fr 1fr;gap:2px 6px;padding:4px 6px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.06))}
+.mt-color-row{display:flex;align-items:center;gap:5px;padding:2px 3px;border-radius:5px;cursor:pointer;font-size:11px}
+.mt-color-row:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(38,49,72,.06))}
+.mt-color-input{width:18px;height:18px;padding:0;border:none;background:none;cursor:pointer;flex:0 0 auto}
+.mt-color-swatch{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.15);flex:0 0 auto}
+.mt-color-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mt-group-list{margin-top:4px;max-height:220px;overflow:auto;border-left:2px solid var(--dsw-alias-border-l2,rgba(0,0,0,.12));padding-left:6px}
 .mt-group-item{display:flex;gap:6px;padding:2px 0;font-size:11px;line-height:1.45}
 .mt-group-seq{color:var(--dsw-alias-label-tertiary,#9ca3af);flex:none;font-variant-numeric:tabular-nums}

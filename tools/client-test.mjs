@@ -368,7 +368,7 @@ const run = async () => {
   {
     const env = await boot();
     await env.sleep(350);
-    const expandButton = [...env.container.querySelectorAll('button')].find((b) => b.textContent === '展开全部');
+    const expandButton = [...env.container.querySelectorAll('button')].find((b) => b.textContent === '展开');
     expandButton.dispatchEvent(new env.win.MouseEvent('click', { bubbles: true }));
     await env.sleep(200);
     const expanded = env.container.querySelectorAll('svg > g > g').length;
@@ -451,7 +451,7 @@ const run = async () => {
     check('精简档保留分支节点(末轮展开)', env.container.textContent.includes('第3轮第2条消息内容文本'));
 
     // 展开全部后对比三档行数
-    click(byText('展开全部'));
+    click(byText('展开'));
     await env.sleep(250);
     const compactRows = rows();
     check('精简档展开后 19 行', compactRows === 19, `实际 ${compactRows}`);
@@ -492,6 +492,82 @@ const run = async () => {
       check('折叠清单包含被折叠调用的标签', text.includes('pwsh') || text.includes('工具'), '');
     }
     env.root.unmount();
+  }
+
+  // ---- 场景 12:配色(预设 + 自定义 + 持久化) ----
+  console.log('[client-test] 场景 12: 配色自定义');
+  {
+    const env = await boot();
+    await env.sleep(350);
+    const byText = (text) => [...env.container.querySelectorAll('button')].find((b) => b.textContent === text);
+    const click = (el) => el.dispatchEvent(new env.win.MouseEvent('click', { bubbles: true }));
+    const root = () => env.container.querySelector('.mt-root');
+    const cssVar = (name) => root().style.getPropertyValue(name).trim();
+
+    check('默认预设为柔和(soft)', (await env.captured.probe.query('state', {})).palettePreset === 'soft');
+    check('柔和配色已注入 CSS 变量', cssVar('--mt-turn') === '#6b63b5', cssVar('--mt-turn'));
+    check('工具栏有配色按钮', byText('配色 ▾') !== undefined);
+
+    click(byText('配色 ▾'));
+    await env.sleep(150);
+    const presetButtons = [...env.container.querySelectorAll('.mt-preset-row .mt-btn-level')];
+    check('配色面板含三个预设', presetButtons.length === 3, String(presetButtons.length));
+    const colorInputs = [...env.container.querySelectorAll('.mt-color-input')];
+    check('配色面板含逐类色块(19 项)', colorInputs.length === 19, String(colorInputs.length));
+
+    // 切到「鲜明」预设
+    click(presetButtons.find((b) => b.textContent === '鲜明'));
+    await env.sleep(200);
+    check('切到鲜明后 CSS 变量更新', cssVar('--mt-turn') === '#8b5cf6', cssVar('--mt-turn'));
+    check('探针记录预设为 vivid', (await env.captured.probe.query('state', {})).palettePreset === 'vivid');
+
+    // 自定义某个颜色 → preset 变为 custom
+    // React 受控输入必须用原生 setter 赋值,否则 React 认为值未变化、不触发 onChange。
+    const input = env.container.querySelector('.mt-color-input');
+    const nativeValue = Object.getOwnPropertyDescriptor(env.win.HTMLInputElement.prototype, 'value').set;
+    nativeValue.call(input, '#123456');
+    input.dispatchEvent(new env.win.Event('input', { bubbles: true }));
+    await env.sleep(200);
+    check('自定义颜色后档位变为 custom', (await env.captured.probe.query('state', {})).palettePreset === 'custom');
+    check('自定义颜色已注入变量', cssVar('--mt-turn') === '#123456', cssVar('--mt-turn'));
+
+    // 持久化:localStorage 应写入
+    const saved = env.win.localStorage.getItem('dsh-mind-tree.palette');
+    check('配色已写入 localStorage', typeof saved === 'string' && saved.includes('#123456'), String(saved).slice(0, 80));
+
+    // 持久化:同一窗口内重新挂载,应从 localStorage 恢复自定义配色
+    env.root.unmount();
+    await env.sleep(80);
+    const container2 = env.win.document.createElement('div');
+    env.win.document.body.append(container2);
+    const root2 = createRoot(container2);
+    root2.render(React.createElement(env.captured.tabBody, {
+      ctx: env.mockCtx,
+      uiWorkspace: env.mockCtx.uiWorkspace,
+      sessionId: 'session-fixture-0001',
+      signal: new env.win.AbortController().signal,
+      useTabInfo: () => ({ sidebar: {}, panel: {}, tab: { title: '思维树' } }),
+    }));
+    await env.sleep(350);
+    const rootEl2 = container2.querySelector('.mt-root');
+    check('重新挂载后恢复自定义配色', rootEl2?.style.getPropertyValue('--mt-turn').trim() === '#123456',
+      rootEl2?.style.getPropertyValue('--mt-turn'));
+    check('重新挂载后预设仍为 custom', (await env.captured.probe.query('state', {})).palettePreset === 'custom');
+
+    // 恢复默认(在同一实例上操作)
+    const click2 = (el) => el.dispatchEvent(new env.win.MouseEvent('click', { bubbles: true }));
+    const byText2 = (text) => [...container2.querySelectorAll('button')].find((b) => b.textContent === text);
+    click2(byText2('配色 ▾'));
+    await env.sleep(150);
+    const resetItem = [...container2.querySelectorAll('.mt-menu-item')].find((b) => b.textContent.includes('恢复默认'));
+    check('配色面板有恢复默认项', resetItem !== undefined);
+    if (resetItem) {
+      click2(resetItem);
+      await env.sleep(200);
+      const turnVar = container2.querySelector('.mt-root').style.getPropertyValue('--mt-turn').trim();
+      check('恢复默认后回到柔和预设', turnVar === '#6b63b5', turnVar);
+    }
+    root2.unmount();
   }
 
   console.log(failures === 0 ? '[client-test] 全部通过' : `[client-test] ${failures} 项失败`);
