@@ -24,11 +24,15 @@
    首次会下载依赖(几分钟),完成后浏览器自动打开 <http://127.0.0.1:3080>。
    以后每次使用重复这一条命令;想关掉按 `Control + C`。
 
+   > **如果你用的是 Mac 桌面版 App**(`/Applications/DeepSeek Harness.app`),
+   > 跳过上面两步,直接打开 App 即可。本文后续的"重启"对桌面版意味着:
+   > **完全退出 App(`Command + Q`)再重新打开**(而不是 Ctrl+C)。
+
 ---
 
 ## 二、安装插件(三种方式,任选)
 
-### 方式 1:填公开仓库地址(推荐,最简单)
+### 方式 1:填公开仓库地址(需要系统里有 git)
 
 在 DSH 左侧「**插件**」→「**添加插件**」,输入:
 
@@ -38,7 +42,12 @@ https://github.com/ShOpenMind/dsh-plugin-mind-tree
 
 点「安装」,然后在插件列表里把「思维树 / dsh-plugin-mind-tree」**启用**。
 
-### 方式 2:本地目录(离线 / 从 zip 安装)
+> ⚠️ **前置条件**:从 GitHub 地址安装时,插件管理器内部会用 `git` 解析仓库。
+> 全新 macOS 如果没有 git,会报 `xcode-select: note: No developer tools were found`。
+> 解决办法:在「终端」执行 `xcode-select --install` 并按提示安装命令行工具;
+> **不想装就改用方式 2(zip 本地目录,不需要 git)。**
+
+### 方式 2:本地目录(离线 / 从 zip 安装,不需要 git)
 
 1. 把 `dsh-plugin-mind-tree` 文件夹解压到一个**固定位置**,例如:
 
@@ -71,7 +80,8 @@ npx @deepseek-ai/dsh plugin --profile <档案名> add /Users/你的用户名/Doc
 
 ### 最后一步(必做):完整重启 DSH
 
-回终端按 `Control + C`,再执行一次 `npx @deepseek-ai/dsh web`。
+- **`npx @deepseek-ai/dsh web`**:回终端按 `Control + C`,再执行一次 `npx @deepseek-ai/dsh web`;
+- **桌面版 App**:完全退出(`Command + Q`,不是点关闭按钮),再重新打开 App。
 
 > 为什么:插件的**宿主半区**只有重启后才加载,只刷新网页不够。
 
