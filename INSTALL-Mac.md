@@ -125,8 +125,10 @@ npx @deepseek-ai/dsh plugin --profile <档案名> add /Users/你的用户名/Doc
 
 | 现象 | 处理 |
 |---|---|
-| 提示「未找到相关插件」 | 你填的是裸包名。改填**仓库地址**或**文件夹绝对路径**。 |
-| 右侧栏没有「思维树」 | 插件没启用,或 DSH 没重启(见第二节最后一步)。 |
+| 报 `xcode-select` / `No developer tools were found` | 你填的是 `.git` 结尾的仓库地址(需要 git)。换用第二节**方式 1 的 `tar.gz` 地址**,它不需要 git。 |
+| 提示「未找到相关插件」 | 你填的是裸包名 `dsh-plugin-mind-tree`。本插件**尚未发布到 npm**,请填 `tar.gz` 地址或文件夹绝对路径。 |
+| `tar.gz` 地址报网络错误 / 超时 | 换下载服务器直链:`https://codeload.github.com/ShOpenMind/dsh-plugin-mind-tree/tar.gz/refs/heads/main`;再不行用方式 2(zip)。 |
+| 右侧栏没有「思维树」 | 插件没启用,或 DSH 没**完全退出重启**(桌面 ⌘Q;npx Ctrl+C)。 |
 | 页签空白 / 一直「连接中」 | 宿主半区没重启。 |
 | 顶部出现黄色「兼容性提示」横幅 | 你的 DSH 版本与本插件测试版本不同。把横幅文字截图反馈即可。 |
 | 终端提示 `command not found: node` | Node.js 没装好,重做第一节。 |

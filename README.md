@@ -74,32 +74,94 @@
 
 ## 安装
 
-**方式一（推荐）**：在 DeepSeek Harness 的**插件页 → 添加插件**里填入以下任一项，然后启用：
+### 方式一(推荐):粘贴一行地址,30 秒装好,**不需要 git**
 
-| 来源 | 填什么 |
-|---|---|
-| npm（发布后） | `dsh-plugin-mind-tree` |
-| GitHub 仓库 | `https://github.com/ShOpenMind/dsh-plugin-mind-tree` |
-| 本地目录（开发用） | `/absolute/path/to/dsh-plugin-mind-tree` |
+在 DeepSeek Harness 的**插件页 → 添加插件**里粘贴**打包下载地址**(注意是 `tar.gz` 结尾):
 
-**方式二（CLI）**：`dsh plugin` 子命令把参数转发给档案目录下的 pnpm，因此用 `add`：
-
-```sh
-dsh plugin --profile <档案名> add /absolute/path/to/dsh-plugin-mind-tree
-# GitHub / npm 同理：dsh plugin --profile <档案名> add https://github.com/ShOpenMind/dsh-plugin-mind-tree
+```
+https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
 ```
 
-装好后仍需在插件页**启用**（`plugin add` 只装包，启用由插件页或档案的 `dsh.profile.bundles` 负责）。
+1. 插件页 → 点「**添加插件**」→ 粘贴上面的地址;
+2. 点「**安装**」(约半分钟);
+3. 在插件列表里把「**思维树 / dsh-plugin-mind-tree**」**启用**;
+4. **完整重启 DSH**:
+   - **桌面版 App**:按 `Command + Q`(或 Ctrl+Q)完全退出,再重新打开;
+   - **`npx @deepseek-ai/dsh web`**:终端按 `Control + C`,再执行一次 `npx @deepseek-ai/dsh web`;
+   - ⚠️ 只刷新网页不够 —— 插件宿主半区只有重启才加载。
 
-**方式三（跨平台运行 DSH）**：任意系统（Windows / macOS / Linux）只需 Node 22+：
+> **为什么是 `tar.gz` 地址而不是仓库地址**:以 `.git` 结尾的 GitHub 地址会被插件管理器
+> 当作 git 仓库拉取,而**全新 macOS 没有 git**,会报
+> `xcode-select: note: No developer tools were found`。
+> `tar.gz` 打包地址是直接下载解压,**任何系统都不需要 git**。
+
+**遇到网络错误时**:改用下载服务器直链
+
+```
+https://codeload.github.com/ShOpenMind/dsh-plugin-mind-tree/tar.gz/refs/heads/main
+```
+
+### 方式二:离线安装(zip / 本地目录,不依赖任何网络)
+
+1. 下载仓库打包文件([zip](https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.zip))并解压,得到 `dsh-plugin-mind-tree` 文件夹,放到一个固定位置(装好后**不要移动/删除**);
+2. 插件页 → 添加插件 → 填**该文件夹的绝对路径**(macOS 例:`/Users/你的用户名/Documents/dsh-plugin-mind-tree`;在「访达」里把文件夹拖进输入框即可自动填全);
+3. 安装 → 启用 → 完整重启 DSH(同方式一第 4 步)。
+
+### 方式三:命令行
+
+`dsh plugin` 子命令把参数转发给档案目录下的 pnpm,因此用 `add`:
+
+```sh
+# 打包地址(推荐,不需要 git)
+dsh plugin --profile <档案名> add https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
+# 或本地目录
+dsh plugin --profile <档案名> add /absolute/path/to/dsh-plugin-mind-tree
+```
+
+装好后仍需在插件页**启用**(`plugin add` 只装包,启用由插件页或档案的 `dsh.profile.bundles` 负责)。
+
+### 方式四(跨平台运行 DSH):任意系统(Windows / macOS / Linux)只需 Node 22+
 
 ```sh
 npx @deepseek-ai/dsh web     # 浏览器打开 http://127.0.0.1:3080
 ```
 
-安装后右侧栏会出现「思维树」标签页（默认会自动打开；也可从右侧栏的开始页进入，或用会话行菜单打开）。
-**前置条件**：GUI 视图需要档案包含 `@deepseek-ai/dsh-web-app`（桌面版/`dsh web` 默认包含）；
-纯终端档案下只有 `mind_tree` 工具可用。
+### 安装常见问题
+
+| 现象 | 原因与处理 |
+|---|---|
+| 填仓库地址报 `xcode-select` / `No developer tools` | 地址是 `.git` 结尾,系统没有 git。改用方式一的 `tar.gz` 地址(不需要 git)。 |
+| 填 `dsh-plugin-mind-tree` 提示「未找到相关插件」 | 本插件**尚未发布到 npm**,裸包名查不到。请填 GitHub 地址(方式一/二)。 |
+| `tar.gz` 地址报网络错误 / 超时 | 换 `codeload.github.com` 直链;再不行用方式二(zip)。 |
+| 装完没有「思维树」页签 | 插件没**启用**,或没**完整重启**(桌面 ⌘Q;npx Ctrl+C)。 |
+| 页签打开空白 / 一直连接中 | 宿主半区没重启;重启后仍失败可查看页内兼容性提示。 |
+
+安装后右侧栏会出现「思维树」标签页(默认会自动打开;也可从右侧栏的开始页进入,或用会话行菜单打开)。
+**前置条件**:GUI 视图需要档案包含 `@deepseek-ai/dsh-web-app`(桌面版/`dsh web` 默认包含);
+纯终端档案下只有 `mind_tree` 工具可用。macOS 的完整图文步骤另见 [INSTALL-Mac.md](INSTALL-Mac.md)。
+
+### Install (English)
+
+Easiest way — **no git required** (paste the tarball URL, *not* the `.git` repo URL):
+
+```
+https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
+```
+
+1. In DeepSeek Harness: **Plugins → Add plugin**, paste the URL above;
+2. Click **Install**, then **enable**「思维树 / dsh-plugin-mind-tree」in the plugin list;
+3. **Fully restart DSH** — Desktop app: `Command + Q` then reopen; `npx @deepseek-ai/dsh web`: `Control + C` and run it again. Refreshing the page is not enough.
+
+Troubleshooting:
+
+| Symptom | Fix |
+|---|---|
+| `xcode-select: No developer tools were found` | You pasted a `.git` URL (needs git). Use the `tar.gz` URL above. |
+| Network error on the URL | Try the direct link: `https://codeload.github.com/ShOpenMind/dsh-plugin-mind-tree/tar.gz/refs/heads/main` |
+| "Plugin not found" for `dsh-plugin-mind-tree` | It is not published to npm yet; use the GitHub URL instead. |
+| No「思维树」tab after install | Not enabled, or DSH wasn't fully restarted. |
+
+Prerequisite for the GUI tab: your profile must include `@deepseek-ai/dsh-web-app` (default in Desktop / `dsh web`); terminal-only profiles can still use the `mind_tree` tool.
 
 ## 开发
 
