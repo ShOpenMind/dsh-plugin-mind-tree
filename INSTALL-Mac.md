@@ -32,22 +32,29 @@
 
 ## 二、安装插件(三种方式,任选)
 
-### 方式 1:填公开仓库地址(需要系统里有 git)
+### 方式 1:填一个地址,一步装好(推荐,不需要 git)
 
-在 DSH 左侧「**插件**」→「**添加插件**」,输入:
+在 DSH 左侧「**插件**」→「**添加插件**」,粘贴**打包下载地址**(不是 `.git` 结尾的仓库地址):
 
 ```
-https://github.com/ShOpenMind/dsh-plugin-mind-tree
+https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
 ```
 
 点「安装」,然后在插件列表里把「思维树 / dsh-plugin-mind-tree」**启用**。
 
-> ⚠️ **前置条件**:从 GitHub 地址安装时,插件管理器内部会用 `git` 解析仓库。
-> 全新 macOS 如果没有 git,会报 `xcode-select: note: No developer tools were found`。
-> 解决办法:在「终端」执行 `xcode-select --install` 并按提示安装命令行工具;
-> **不想装就改用方式 2(zip 本地目录,不需要 git)。**
+> **为什么用这个地址**:以 `.git` 结尾的 GitHub 地址会被插件管理器当作 git 仓库处理,
+> 全新 macOS 没有 git 会报 `xcode-select: note: No developer tools were found`。
+> 上面这个 `tar.gz` 打包地址是**直接下载解压,完全不需要 git**。
+>
+> 如果这个地址报"网络错误/超时"(而不是 git 报错),改用下载服务器直链再试一次:
+>
+> ```
+> https://codeload.github.com/ShOpenMind/dsh-plugin-mind-tree/tar.gz/refs/heads/main
+> ```
+>
+> 都不行,再用方式 2(zip 本地目录,不依赖任何网络)。
 
-### 方式 2:本地目录(离线 / 从 zip 安装,不需要 git)
+### 方式 2:本地目录(离线 / 从 zip 安装)
 
 1. 把 `dsh-plugin-mind-tree` 文件夹解压到一个**固定位置**,例如:
 
@@ -70,8 +77,8 @@ https://github.com/ShOpenMind/dsh-plugin-mind-tree
 `dsh plugin` 子命令会把参数转发给档案目录下的 pnpm,因此用 `add`:
 
 ```sh
-# 仓库地址
-npx @deepseek-ai/dsh plugin --profile <档案名> add https://github.com/ShOpenMind/dsh-plugin-mind-tree
+# 打包地址(推荐,不需要 git)
+npx @deepseek-ai/dsh plugin --profile <档案名> add https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
 # 或本地目录
 npx @deepseek-ai/dsh plugin --profile <档案名> add /Users/你的用户名/Documents/dsh-plugin-mind-tree
 ```
