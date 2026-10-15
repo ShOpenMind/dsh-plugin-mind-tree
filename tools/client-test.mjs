@@ -513,7 +513,10 @@ const run = async () => {
     const presetButtons = [...env.container.querySelectorAll('.mt-preset-row .mt-btn-level')];
     check('配色面板含三个预设', presetButtons.length === 3, String(presetButtons.length));
     const colorInputs = [...env.container.querySelectorAll('.mt-color-input')];
-    check('配色面板含逐类色块(19 项)', colorInputs.length === 19, String(colorInputs.length));
+    check('配色面板含逐类色块(24 项:节点 19 + 连线 4 + 徽章 1)', colorInputs.length === 24, String(colorInputs.length));
+    check('自定义分区标题存在', env.container.textContent.includes('自定义颜色'), '');
+    const badgeInput = colorInputs.find((el) => (el.closest('label')?.textContent ?? '').includes('分支徽章'));
+    check('存在分支徽章色块', badgeInput !== undefined);
 
     // 切到「鲜明」预设
     click(presetButtons.find((b) => b.textContent === '鲜明'));

@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-mind-tree",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "遍历对话上下文，识别分支节点并渲染思维树/会话树的 DeepSeek Harness 插件（右侧栏 GUI + mind_tree 工具 + Obsidian 导出）。",
   "type": "module",
   "license": "MIT",

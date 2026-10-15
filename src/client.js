@@ -132,6 +132,8 @@ const MESSAGES = {
     'palette.soft': '柔和',
     'palette.vivid': '鲜明',
     'palette.slate': '灰蓝',
+    'palette.custom': '自定义颜色',
+    'palette.customOn': '已启用',
     'palette.reset': '恢复默认(柔和)',
     'palette.hint': '点色块可逐类调整;选择会保存在本机',
     'color.turn': '轮次',
@@ -153,6 +155,11 @@ const MESSAGES = {
     'color.branchAssistant': '分支·助手',
     'color.error': '出错',
     'color.shadowed': '已脱离上下文',
+    'color.edge': '主干连接线',
+    'color.edgeSpawn': '子会话连线',
+    'color.edgeReplaced': '被替换连线',
+    'color.edgeDerived': '派生连线',
+    'color.badge': '分支徽章',
     'retry': '重试',
     'token.input': '输入',
     'token.output': '输出',
@@ -248,6 +255,8 @@ const MESSAGES = {
     'palette.soft': 'Soft',
     'palette.vivid': 'Vivid',
     'palette.slate': 'Slate',
+    'palette.custom': 'Custom colors',
+    'palette.customOn': 'On',
     'palette.reset': 'Reset to Soft',
     'palette.hint': 'Click a swatch to tune each kind; saved locally',
     'color.turn': 'Turn',
@@ -269,6 +278,11 @@ const MESSAGES = {
     'color.branchAssistant': 'Branch · assistant',
     'color.error': 'Error',
     'color.shadowed': 'Out of context',
+    'color.edge': 'Main connectors',
+    'color.edgeSpawn': 'Sub-session edges',
+    'color.edgeReplaced': 'Replaced edges',
+    'color.edgeDerived': 'Derived edges',
+    'color.badge': 'Branch badge',
     'retry': 'Retry',
     'token.input': 'input',
     'token.output': 'output',
@@ -422,6 +436,7 @@ const COLOR_KINDS = [
   'turn', 'user', 'assistant', 'tool', 'toolgroup', 'result',
   'session', 'goal', 'todo', 'plan', 'compaction', 'retry', 'approval', 'team', 'info',
   'branchUser', 'branchAssistant', 'error', 'shadowed',
+  'edge', 'edgeSpawn', 'edgeReplaced', 'edgeDerived', 'badge',
 ];
 const COLOR_VARS = {
   turn: '--mt-turn', user: '--mt-user', assistant: '--mt-assistant', tool: '--mt-tool',
@@ -430,6 +445,8 @@ const COLOR_VARS = {
   retry: '--mt-retry', approval: '--mt-approval', team: '--mt-team', info: '--mt-info',
   branchUser: '--mt-branch-user', branchAssistant: '--mt-branch-assistant',
   error: '--mt-error', shadowed: '--mt-shadowed',
+  edge: '--mt-edge', edgeSpawn: '--mt-edge-spawn', edgeReplaced: '--mt-edge-replaced',
+  edgeDerived: '--mt-edge-derived', badge: '--mt-badge',
 };
 /** 预设配色:soft 为默认 —— 降饱和、提高白字对比,长时间看不刺眼。 */
 const PALETTES = {
@@ -438,18 +455,21 @@ const PALETTES = {
     result: '#4a5568', session: '#8a5a2b', goal: '#2c6e78', todo: '#5a7a2e', plan: '#32638c',
     compaction: '#5a5560', retry: '#9c5a2c', approval: '#9a4a6b', team: '#8a4a82', info: '#556070',
     branchUser: '#2f5f92', branchAssistant: '#276b55', error: '#a6392f', shadowed: '#cbd5e1',
+    edge: '#8b95a3', edgeSpawn: '#9c6b3a', edgeReplaced: '#c98a2b', edgeDerived: '#4a8fc9', badge: '#c99a3b',
   },
   vivid: {
     turn: '#8b5cf6', user: '#2563eb', assistant: '#059669', tool: '#7c3aed', toolgroup: '#6d28d9',
     result: '#52525b', session: '#b45309', goal: '#0e7490', todo: '#4d7c0f', plan: '#0369a1',
     compaction: '#57534e', retry: '#c2410c', approval: '#be185d', team: '#a21caf', info: '#64748b',
     branchUser: '#1d4ed8', branchAssistant: '#047857', error: '#b91c1c', shadowed: '#cbd5e1',
+    edge: '#94a3b8', edgeSpawn: '#b45309', edgeReplaced: '#f59e0b', edgeDerived: '#38bdf8', badge: '#fbbf24',
   },
   slate: {
     turn: '#5b6478', user: '#3f5a7a', assistant: '#42685c', tool: '#5a5670', toolgroup: '#4d4a63',
     result: '#4b5563', session: '#6f5a42', goal: '#3f6470', todo: '#556b3c', plan: '#3c5f7d',
     compaction: '#565248', retry: '#7a5540', approval: '#6f4a5c', team: '#6a4a66', info: '#5a6472',
     branchUser: '#3a5573', branchAssistant: '#3d6055', error: '#8f4038', shadowed: '#cbd5e1',
+    edge: '#8891a0', edgeSpawn: '#7a6a4a', edgeReplaced: '#a8843c', edgeDerived: '#5a7f9c', badge: '#9c8a52',
   },
 };
 const DEFAULT_PRESET = 'soft';
@@ -514,7 +534,7 @@ function branchLabel(kind, t) {
 }
 
 // ---- 紧凑纵向大纲布局(适配窄侧栏,纵向滚动,不裁切) ----
-const ROW_H = 32;
+const ROW_H = 34;
 const INDENT = 16;
 const PAD_X = 8;
 const PAD_Y = 10;
@@ -706,6 +726,12 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
   const rowWidth = Math.max(120, width - x - PAD_X * 2);
   const y = PAD_Y + row.index * ROW_H;
   const { fill, ink } = nodeColor(node, palette);
+  // 分支徽章颜色(随配色走,文字色按对比度自动选择)。
+  const badgeHex = (palette?.colors?.badge && HEX_RE.test(palette.colors.badge))
+    ? palette.colors.badge
+    : PALETTES[DEFAULT_PRESET].badge;
+  const badgeFill = `var(${COLOR_VARS.badge}, ${badgeHex})`;
+  const badgeInk = inkFor(badgeHex, '#3f2d00', '#fff7e0');
   const shadowed = node.surface === 'shadowed';
   const isTurn = node.kind === 'turn';
   const usage = node.usage;
@@ -714,7 +740,7 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
   const metaText = isTurn && usage
     ? `#${node.seq >= 0 ? node.seq : '—'} · ${usage.messageCount ?? 0}条${fmtTokens(usage.total || usage.input + usage.output) ? ` · ${fmtTokens(usage.total || usage.input + usage.output)} tok` : ''}`
     : `#${node.seq >= 0 ? node.seq : '—'} ${t(`node.${node.kind}`)}`;
-  const metaWidth = measureText(metaText, 10) + 8;
+  const metaWidth = measureText(metaText, 10.5) + 9;
   const metaX = rowWidth - 8 - metaWidth;
   let cursor = metaX;
   let jumpX = null;
@@ -730,15 +756,15 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
 
   const textX = x + (kidCount > 0 ? 20 : 11);
   const available = Math.max(40, cursor - 8 - textX);
-  const maxChars = Math.max(6, Math.floor(available / 6.7));
+  const maxChars = Math.max(6, Math.floor(available / 7.3));
   const label = clampLabel(node.label, maxChars);
   const open = kidCount > 0 && !collapsed;
   // 轮次摘要:紧跟在"第 N 轮"之后,浅色显示并自适应剩余宽度。
   const summary = typeof node.summary === 'string' ? node.summary : '';
-  const labelWidth = measureText(node.label, 12.6) + 12;
+  const labelWidth = measureText(node.label, 13.6) + 12;
   const summaryX = textX + labelWidth;
   const summaryAvailable = Math.max(0, cursor - 8 - summaryX);
-  const summaryChars = Math.max(4, Math.floor(summaryAvailable / 11.6));
+  const summaryChars = Math.max(4, Math.floor(summaryAvailable / 12.6));
   const summaryText = summary ? `· ${clampLabel(summary, summaryChars)}` : '';
 
   const title = `${node.label}${summary ? ` · ${summary}` : ''}`
@@ -771,22 +797,22 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
         onToggle(node.id);
       },
     },
-      h('rect', { x: railX - 6, y: 6, width: 15, height: 15, rx: 3, fill: 'rgba(255,255,255,0.28)' }),
+      h('rect', { x: railX - 6, y: 7, width: 15, height: 15, rx: 3, fill: 'rgba(255,255,255,0.28)' }),
       h('text', {
-        x: railX + 1.5, y: 17.5, fontSize: 10, fontWeight: 700, textAnchor: 'middle',
+        x: railX + 1.5, y: 18.5, fontSize: 10, fontWeight: 700, textAnchor: 'middle',
         fill: ink, style: { userSelect: 'none' },
       }, open ? '▾' : '▸')),
     h('text', {
-      x: textX, y: 21, fontSize: 12, fontWeight: 600,
+      x: textX, y: 23, fontSize: 13, fontWeight: 600,
       fill: shadowed ? '#64748b' : ink, style: { userSelect: 'none' },
     }, label),
     summaryText && h('text', {
-      x: summaryX, y: 21, fontSize: 11,
+      x: summaryX, y: 23, fontSize: 12,
       fill: shadowed ? '#64748b' : ink, opacity: 0.9,
       style: { userSelect: 'none' },
     }, summaryText),
     jumpX !== null && h('g', {
-      transform: `translate(${jumpX}, 5)`,
+      transform: `translate(${jumpX}, 6)`,
       onClick: (event) => { event.stopPropagation(); if (typeof onJump === 'function') onJump(node); },
       style: { cursor: 'pointer' },
     },
@@ -795,14 +821,17 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
         x: 7.5, y: 12, fontSize: 11, fontWeight: 700, textAnchor: 'middle',
         fill: shadowed ? '#64748b' : ink, style: { userSelect: 'none' },
       }, '↗')),
-    badgeX !== null && h('g', { transform: `translate(${badgeX}, 5)` },
-      h('rect', { x: 0, y: 0, width: 16, height: 15, rx: 3, fill: '#fbbf24', stroke: '#92400e', strokeWidth: 0.8 }),
+    badgeX !== null && h('g', { transform: `translate(${badgeX}, 6)` },
+      h('rect', {
+        x: 0, y: 0, width: 16, height: 15, rx: 3,
+        fill: badgeFill, stroke: 'rgba(0,0,0,.25)', strokeWidth: 0.8,
+      }),
       h('text', {
         x: 8, y: 12, fontSize: 10, fontWeight: 700, textAnchor: 'middle',
-        fill: '#78350f', style: { userSelect: 'none' },
+        fill: badgeInk, style: { userSelect: 'none' },
       }, BRANCH_MARKS[node.branch.kind] ?? '分')),
     h('text', {
-      x: metaX + metaWidth, y: 21, fontSize: 10, textAnchor: 'end',
+      x: metaX + metaWidth, y: 23, fontSize: 10.5, textAnchor: 'end',
       fill: shadowed ? '#64748b' : ink, opacity: 0.85, style: { userSelect: 'none' },
     }, metaText),
     h('title', null, title));
@@ -1488,6 +1517,9 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
                 className: `mt-btn mt-btn-level ${palette.preset === preset ? 'mt-btn-on' : ''}`,
                 onClick: () => applyPreset(preset),
               }, t(`palette.${preset}`)))),
+            h('div', { className: 'mt-menu-section' },
+              h('span', { className: 'mt-menu-section-title' }, t('palette.custom')),
+              palette.preset === 'custom' && h('span', { className: 'mt-menu-section-badge' }, t('palette.customOn'))),
             h('div', { className: 'mt-color-list' },
               COLOR_KINDS.map((key) => h('label', { className: 'mt-color-row', key },
                 h('input', {
@@ -1650,6 +1682,9 @@ module.exports = {
 .mt-menu-wide{min-width:250px;max-height:70vh;overflow:auto}
 .mt-menu-title{padding:4px 9px 2px;font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-secondary,#61666b)}
 .mt-preset-row{display:flex;gap:4px;padding:2px 6px 6px}
+.mt-menu-section{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 9px 2px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.06))}
+.mt-menu-section-title{font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-secondary,#61666b)}
+.mt-menu-section-badge{font-size:9.5px;font-weight:600;padding:1px 6px;border-radius:8px;color:var(--dsw-alias-brand-primary,#111827);background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.06))}
 .mt-color-list{display:grid;grid-template-columns:1fr 1fr;gap:2px 6px;padding:4px 6px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.06))}
 .mt-color-row{display:flex;align-items:center;gap:5px;padding:2px 3px;border-radius:5px;cursor:pointer;font-size:11px}
 .mt-color-row:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(38,49,72,.06))}
