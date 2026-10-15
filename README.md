@@ -252,6 +252,33 @@ gh release create vX.Y.Z dsh-plugin-mind-tree-X.Y.Z.tgz dsh-plugin-mind-tree.tgz
 macOS 离线包（可选，供不便联网的场景）：`git archive` 导出源码目录后打包为
 `dsh-plugin-mind-tree-vX.Y.Z-mac.zip` 一并上传。
 
+### 发布到 npm（让安装变成"填一个包名"）
+
+发布后安装只需填 `dsh-plugin-mind-tree`，不再依赖 GitHub 直连（可走 npm 镜像，快且稳）。
+本仓库的运行环境自带 pnpm（含 `login` / `publish`），无需额外安装 npm：
+
+```sh
+# 0) 一次性:注册 https://www.npmjs.com/signup 并完成邮箱验证,然后登录
+node <runtime>/dependencies/pnpm/bin/pnpm.mjs login
+
+# 1) 预演:确认打进去的内容(lib + cordis.patch.yml + README + LICENSE)
+node <runtime>/dependencies/pnpm/bin/pnpm.mjs publish --dry-run --no-git-checks
+
+# 2) 正式发布(未加 scope 的包默认 public)
+node <runtime>/dependencies/pnpm/bin/pnpm.mjs publish --no-git-checks --access public
+
+# 3) 验证
+node <runtime>/dependencies/pnpm/bin/pnpm.mjs view dsh-plugin-mind-tree version
+```
+
+注意：
+
+- **版本号不可复用**（同版本重复发布会报 `EPUBLISHCONFLICT`），发新版先改 `package.json` 的 `version`；
+- 若提示需要 2FA，可在 npm 账号设置里开启 2FA 后带 `--otp <6 位验证码>`，
+  或改用 **Granular Access Token**（权限 Read and write + 允许绕过 2FA）写入 `~/.npmrc`:
+  `//registry.npmjs.org/:_authToken=<token>`；
+- `repository` / `files` / `peerDependencies` 已配置妥当，npm 页面会自动展示仓库与依赖信息。
+
 ## 第三方依赖与许可
 
 - **运行时依赖**:[zod](https://github.com/colinhacks/zod)(MIT)。为避免宿主要求加载,其代码随客户端构建产物 `lib/client.js` 内联分发(约 900 KB),其许可证随附于 zod 项目;
