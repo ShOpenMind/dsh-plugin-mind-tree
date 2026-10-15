@@ -34,25 +34,26 @@
 
 ### 方式 1:填一个地址,一步装好(推荐,不需要 git)
 
-在 DSH 左侧「**插件**」→「**添加插件**」,粘贴**打包下载地址**(不是 `.git` 结尾的仓库地址):
+在 DSH 左侧「**插件**」→「**添加插件**」,粘贴下面的地址(**固定链接,始终指向最新版**):
 
 ```
-https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
+https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases/latest/download/dsh-plugin-mind-tree.tgz
 ```
 
 点「安装」,然后在插件列表里把「思维树 / dsh-plugin-mind-tree」**启用**。
 
-> **为什么用这个地址**:以 `.git` 结尾的 GitHub 地址会被插件管理器当作 git 仓库处理,
-> 全新 macOS 没有 git 会报 `xcode-select: note: No developer tools were found`。
-> 上面这个 `tar.gz` 打包地址是**直接下载解压,完全不需要 git**。
+> **为什么必须是这个 `.tgz` 地址**(常见的两种填法都会失败):
 >
-> 如果这个地址报"网络错误/超时"(而不是 git 报错),改用下载服务器直链再试一次:
+> | 填法 | 报错 | 原因 |
+> |---|---|---|
+> | `…/dsh-plugin-mind-tree`(仓库地址) | `xcode-select: No developer tools were found` | 被当作 **git 仓库**拉取,全新 macOS 没有 git |
+> | `…/archive/refs/heads/main.tar.gz`(源码压缩包) | **「无法从依赖变更中确定安装了哪一个包」** | 文件名是 `main.tar.gz`,与包名无关,插件管理器认不出装了什么 |
+> | 上面这个 `.tgz` | ✅ | 标准 npm 包,**文件名就是包名**,且不需要 git |
 >
-> ```
-> https://codeload.github.com/ShOpenMind/dsh-plugin-mind-tree/tar.gz/refs/heads/main
-> ```
->
-> 都不行,再用方式 2(zip 本地目录,不依赖任何网络)。
+> **升级**:重新粘贴同一地址安装一次(会拉到最新 release)再重启即可。
+
+如果这个地址报"网络错误/超时",在 [Releases](https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases)
+页下载 `.tgz` 文件,然后填**本地文件路径**安装(见方式 2)。
 
 ### 方式 2:本地目录(离线 / 从 zip 安装)
 
@@ -77,8 +78,8 @@ https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.g
 `dsh plugin` 子命令会把参数转发给档案目录下的 pnpm,因此用 `add`:
 
 ```sh
-# 打包地址(推荐,不需要 git)
-npx @deepseek-ai/dsh plugin --profile <档案名> add https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
+# Release 里的标准 npm 包(推荐,不需要 git)
+npx @deepseek-ai/dsh plugin --profile <档案名> add https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases/latest/download/dsh-plugin-mind-tree.tgz
 # 或本地目录
 npx @deepseek-ai/dsh plugin --profile <档案名> add /Users/你的用户名/Documents/dsh-plugin-mind-tree
 ```
@@ -125,9 +126,10 @@ npx @deepseek-ai/dsh plugin --profile <档案名> add /Users/你的用户名/Doc
 
 | 现象 | 处理 |
 |---|---|
-| 报 `xcode-select` / `No developer tools were found` | 你填的是 `.git` 结尾的仓库地址(需要 git)。换用第二节**方式 1 的 `tar.gz` 地址**,它不需要 git。 |
-| 提示「未找到相关插件」 | 你填的是裸包名 `dsh-plugin-mind-tree`。本插件**尚未发布到 npm**,请填 `tar.gz` 地址或文件夹绝对路径。 |
-| `tar.gz` 地址报网络错误 / 超时 | 换下载服务器直链:`https://codeload.github.com/ShOpenMind/dsh-plugin-mind-tree/tar.gz/refs/heads/main`;再不行用方式 2(zip)。 |
+| 报 `xcode-select` / `No developer tools were found` | 你填的是 `.git` 结尾的仓库地址(需要 git)。换用第二节**方式 1 的 `.tgz` 地址**。 |
+| **「无法从依赖变更中确定安装了哪一个包」** | 你填的是 GitHub **archive 压缩包**(`…/main.tar.gz`),文件名与包名无关。换用方式 1 的 `.tgz` 地址。 |
+| 提示「未找到相关插件」 | 你填的是裸包名 `dsh-plugin-mind-tree`。本插件**尚未发布到 npm**,请填 `.tgz` 地址或文件夹绝对路径。 |
+| `.tgz` 地址报网络错误 / 超时 | 在 Releases 页下载 `.tgz` 后用**本地文件路径**安装(方式 2 同理)。 |
 | 右侧栏没有「思维树」 | 插件没启用,或 DSH 没**完全退出重启**(桌面 ⌘Q;npx Ctrl+C)。 |
 | 页签空白 / 一直「连接中」 | 宿主半区没重启。 |
 | 顶部出现黄色「兼容性提示」横幅 | 你的 DSH 版本与本插件测试版本不同。把横幅文字截图反馈即可。 |

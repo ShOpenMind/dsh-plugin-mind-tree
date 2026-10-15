@@ -7,6 +7,8 @@ exports/
 mindtree-export/
 dist/
 *.tsbuildinfo
+# 打包产物(pnpm pack):只作为 Release 附件上传,不进仓库
+*.tgz
 
 # 日志与临时文件
 *.log

@@ -81,10 +81,10 @@
 
 ### 方式一(推荐):粘贴一行地址,30 秒装好,**不需要 git**
 
-在 DeepSeek Harness 的**插件页 → 添加插件**里粘贴**打包下载地址**(注意是 `tar.gz` 结尾):
+在 DeepSeek Harness 的**插件页 → 添加插件**里粘贴下面的地址(**固定链接,始终指向最新版**):
 
 ```
-https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
+https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases/latest/download/dsh-plugin-mind-tree.tgz
 ```
 
 1. 插件页 → 点「**添加插件**」→ 粘贴上面的地址;
@@ -95,20 +95,24 @@ https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.g
    - **`npx @deepseek-ai/dsh web`**:终端按 `Control + C`,再执行一次 `npx @deepseek-ai/dsh web`;
    - ⚠️ 只刷新网页不够 —— 插件宿主半区只有重启才加载。
 
-> **为什么是 `tar.gz` 地址而不是仓库地址**:以 `.git` 结尾的 GitHub 地址会被插件管理器
-> 当作 git 仓库拉取,而**全新 macOS 没有 git**,会报
-> `xcode-select: note: No developer tools were found`。
-> `tar.gz` 打包地址是直接下载解压,**任何系统都不需要 git**。
+> **为什么必须是这个 `.tgz` 地址**(两种常见填法都会失败):
+> - 以 `.git` 结尾的 GitHub 地址 → 被当作 git 仓库拉取,而**全新 macOS 没有 git**,
+>   报 `xcode-select: note: No developer tools were found`;
+> - `…/archive/refs/heads/main.tar.gz` 这类 **archive 压缩包** → 文件名是 `main.tar.gz`,
+>   与包名无关,插件管理器无法判断"装了哪个包",
+>   报 **「无法从依赖变更中确定安装了哪一个包」**;
+> - `.tgz` 是**标准 npm 包**(文件名即包名,内含 `package.json`),能被插件管理器正确识别,
+>   也**完全不需要 git**;配合 `releases/latest/…` 永久指向最新版。
+>
+> **升级**:重新粘贴同一地址安装一次(拿到最新 release)再重启即可。
 
-**遇到网络错误时**:改用下载服务器直链
-
-```
-https://codeload.github.com/ShOpenMind/dsh-plugin-mind-tree/tar.gz/refs/heads/main
-```
+**网络不通时**:在 [Releases](https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases) 页下载 `.tgz` 到本地,填**本地文件路径**安装。
 
 ### 方式二:离线安装(zip / 本地目录,不依赖任何网络)
 
-1. 下载仓库打包文件([zip](https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.zip))并解压,得到 `dsh-plugin-mind-tree` 文件夹,放到一个固定位置(装好后**不要移动/删除**);
+1. 下载 [zip 源码包](https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.zip)
+   (或 [Release 页](https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases)的 `…-mac.zip`)并解压,
+   得到 `dsh-plugin-mind-tree` 文件夹,放到一个固定位置(装好后**不要移动/删除**);
 2. 插件页 → 添加插件 → 填**该文件夹的绝对路径**(macOS 例:`/Users/你的用户名/Documents/dsh-plugin-mind-tree`;在「访达」里把文件夹拖进输入框即可自动填全);
 3. 安装 → 启用 → 完整重启 DSH(同方式一第 4 步)。
 
@@ -117,8 +121,8 @@ https://codeload.github.com/ShOpenMind/dsh-plugin-mind-tree/tar.gz/refs/heads/ma
 `dsh plugin` 子命令把参数转发给档案目录下的 pnpm,因此用 `add`:
 
 ```sh
-# 打包地址(推荐,不需要 git)
-dsh plugin --profile <档案名> add https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
+# Release 里的标准 npm 包(推荐,不需要 git)
+dsh plugin --profile <档案名> add https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases/latest/download/dsh-plugin-mind-tree.tgz
 # 或本地目录
 dsh plugin --profile <档案名> add /absolute/path/to/dsh-plugin-mind-tree
 ```
@@ -135,9 +139,10 @@ npx @deepseek-ai/dsh web     # 浏览器打开 http://127.0.0.1:3080
 
 | 现象 | 原因与处理 |
 |---|---|
-| 填仓库地址报 `xcode-select` / `No developer tools` | 地址是 `.git` 结尾,系统没有 git。改用方式一的 `tar.gz` 地址(不需要 git)。 |
-| 填 `dsh-plugin-mind-tree` 提示「未找到相关插件」 | 本插件**尚未发布到 npm**,裸包名查不到。请填 GitHub 地址(方式一/二)。 |
-| `tar.gz` 地址报网络错误 / 超时 | 换 `codeload.github.com` 直链;再不行用方式二(zip)。 |
+| 填仓库地址报 `xcode-select` / `No developer tools` | 地址是 `.git` 结尾,系统没有 git。改用方式一的 `.tgz` 地址(不需要 git)。 |
+| **「无法从依赖变更中确定安装了哪一个包」** | 你填的是 GitHub **archive 压缩包**(如 `…/main.tar.gz`),文件名与包名无关。改用方式一的 `.tgz` 地址。 |
+| 填 `dsh-plugin-mind-tree` 提示「未找到相关插件」 | 本插件**尚未发布到 npm**,裸包名查不到。请填方式一的 `.tgz` 地址(方式二也可)。 |
+| `.tgz` 地址报网络错误 / 超时 | 在 Releases 页下载 `.tgz` 后用本地文件路径安装(方式二同理)。 |
 | 装完没有「思维树」页签 | 插件没**启用**,或没**完整重启**(桌面 ⌘Q;npx Ctrl+C)。 |
 | 页签打开空白 / 一直连接中 | 宿主半区没重启;重启后仍失败可查看页内兼容性提示。 |
 
@@ -147,10 +152,10 @@ npx @deepseek-ai/dsh web     # 浏览器打开 http://127.0.0.1:3080
 
 ### Install (English)
 
-Easiest way — **no git required** (paste the tarball URL, *not* the `.git` repo URL):
+Easiest way — **no git required** (paste the npm tarball URL, *not* the `.git` repo URL):
 
 ```
-https://github.com/ShOpenMind/dsh-plugin-mind-tree/archive/refs/heads/main.tar.gz
+https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases/latest/download/dsh-plugin-mind-tree.tgz
 ```
 
 1. In DeepSeek Harness: **Plugins → Add plugin**, paste the URL above;
@@ -161,9 +166,10 @@ Troubleshooting:
 
 | Symptom | Fix |
 |---|---|
-| `xcode-select: No developer tools were found` | You pasted a `.git` URL (needs git). Use the `tar.gz` URL above. |
-| Network error on the URL | Try the direct link: `https://codeload.github.com/ShOpenMind/dsh-plugin-mind-tree/tar.gz/refs/heads/main` |
-| "Plugin not found" for `dsh-plugin-mind-tree` | It is not published to npm yet; use the GitHub URL instead. |
+| `xcode-select: No developer tools were found` | You pasted a `.git` URL (needs git). Use the `.tgz` URL above. |
+| **"无法从依赖变更中确定安装了哪一个包"** (cannot tell which package was installed) | You pasted a GitHub **archive** URL (`…/main.tar.gz`) whose filename carries no package name. Use the `.tgz` URL above. |
+| Network error on the URL | Download the `.tgz` from the [Releases](https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases) page and install from the local file path. |
+| "Plugin not found" for `dsh-plugin-mind-tree` | It is not published to npm yet; use the `.tgz` URL instead. |
 | No「思维树」tab after install | Not enabled, or DSH wasn't fully restarted. |
 
 Prerequisite for the GUI tab: your profile must include `@deepseek-ai/dsh-web-app` (default in Desktop / `dsh web`); terminal-only profiles can still use the `mind_tree` tool.
@@ -210,6 +216,30 @@ pnpm run test:host     # 只跑某套:host / reduce / client / mount / render / 
 - 客户端半区在右侧栏注册「思维树」标签页，用 SVG 渲染树（折叠/搜索/导出/三档信息量）。
 
 本插件只读会话数据：不写入会话、不发起模型调用、不上传任何数据。
+
+## 发布新版本（维护者）
+
+> 安装文档用的是**固定链接** `…/releases/latest/download/dsh-plugin-mind-tree.tgz`，
+> 因此每次发版**必须同时上传一个不带版本号的 `dsh-plugin-mind-tree.tgz`**，否则该链接会 404。
+
+```sh
+# 1. 改版本号 + 构建 + 测试
+#    (package.json version;Client 改动必须先 pnpm run build 并提交 lib/client.js)
+pnpm run build && pnpm test
+git add -A && git commit -m "release: vX.Y.Z" && git push
+
+# 2. 打包标准 npm 包,并复制一份不带版本号的副本
+pnpm pack                                   # → dsh-plugin-mind-tree-X.Y.Z.tgz
+cp dsh-plugin-mind-tree-X.Y.Z.tgz dsh-plugin-mind-tree.tgz
+
+# 3. 打标签 + 建 Release,同时上传两个资源
+git tag vX.Y.Z && git push origin vX.Y.Z
+gh release create vX.Y.Z dsh-plugin-mind-tree-X.Y.Z.tgz dsh-plugin-mind-tree.tgz \
+  --title "vX.Y.Z" --notes "…更新说明…"
+```
+
+macOS 离线包（可选，供不便联网的场景）：`git archive` 导出源码目录后打包为
+`dsh-plugin-mind-tree-vX.Y.Z-mac.zip` 一并上传。
 
 ## 第三方依赖与许可
 
