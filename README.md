@@ -258,7 +258,11 @@ macOS 离线包（可选，供不便联网的场景）：`git archive` 导出源
 本仓库的运行环境自带 pnpm（含 `login` / `publish`），无需额外安装 npm：
 
 ```sh
-# 0) 一次性:注册 https://www.npmjs.com/signup 并完成邮箱验证,然后登录
+# 0) 一次性:在**网页端**注册 https://www.npmjs.com/signup 并完成邮箱验证,然后登录
+#    ⚠️ npm 已禁用「命令行建号」:用 CLI 建号会返回 403
+#       "Account creation via legacy auth is unavailable" —— 网页注册是唯一途径。
+#    ⚠️ 若网页被 Cloudflare 拦(「访问暂时受限」),换代理节点 / 用手机流量打开,
+#       注册与邮件验证链接都用手机流量完成。
 node <runtime>/dependencies/pnpm/bin/pnpm.mjs login
 
 # 1) 预演:确认打进去的内容(lib + cordis.patch.yml + README + LICENSE)
