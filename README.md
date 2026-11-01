@@ -79,6 +79,11 @@
 
 ## 安装
 
+> ⚠️ **填 release 的 `.tgz` 地址，不要填仓库地址。**
+> 仓库地址会被解析成 default 分支的 `main.tar.gz` 快照——内容随每次提交变化，而锁文件记的是旧内容的哈希，pnpm 会以 `ERR_PNPM_TARBALL_INTEGRITY` 中止安装，而且报错里根本看不出根因。
+> 正确写法：`https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases/latest/download/dsh-plugin-mind-tree.tgz`
+> 已经被卡住的话：`cd ~/.dsh/profiles/<profile> && npx pnpm install --update-checksums`。
+
 ### 方式一(推荐):粘贴一行地址,30 秒装好,**不需要 git**
 
 在 DeepSeek Harness 的**插件页 → 添加插件**里粘贴下面的地址(**固定链接,始终指向最新版**):
