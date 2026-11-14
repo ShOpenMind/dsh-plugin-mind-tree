@@ -24,7 +24,11 @@
     "type": "git",
     "url": "git+https://github.com/ShOpenMind/dsh-plugin-mind-tree.git"
   },
-  "keywords": ["dsh", "deepseek-harness", "plugin", "mindmap", "session-tree", "observability"],
+  "homepage": "https://github.com/ShOpenMind/dsh-plugin-mind-tree#readme",
+  "bugs": {
+    "url": "https://github.com/ShOpenMind/dsh-plugin-mind-tree/issues"
+  },
+  "keywords": ["dsh", "deepseek-harness", "plugin", "mindmap", "session-tree", "observability", "dsh-plugin", "dsh-bundle", "dsh-market"],
   "dependencies": {
     "zod": "^4.4.0"
   },
