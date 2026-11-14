@@ -84,6 +84,15 @@
 > 正确写法：`https://github.com/ShOpenMind/dsh-plugin-mind-tree/releases/latest/download/dsh-plugin-mind-tree.tgz`
 > 已经被卡住的话：`cd ~/.dsh/profiles/<profile> && npx pnpm install --update-checksums`。
 
+### 方式零(最省事):从 npm 装
+
+```sh
+dsh plugin install dsh-plugin-mind-tree
+```
+
+或在 Harness 的「插件」面板里搜索 `dsh-plugin-mind-tree`。
+npm 上的版本号不可变,不存在「同一地址内容变了、哈希对不上」的问题。
+
 ### 方式一(推荐):粘贴一行地址,30 秒装好,**不需要 git**
 
 在 DeepSeek Harness 的**插件页 → 添加插件**里粘贴下面的地址(**固定链接,始终指向最新版**):
