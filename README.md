@@ -310,6 +310,9 @@ node <runtime>/dependencies/pnpm/bin/pnpm.mjs view dsh-plugin-mind-tree version
   或改用 **Granular Access Token**（权限 Read and write + 允许绕过 2FA）写入 `~/.npmrc`:
   `//registry.npmjs.org/:_authToken=<token>`；
 - `repository` / `files` / `peerDependencies` 已配置妥当，npm 页面会自动展示仓库与依赖信息。
+- **发布后要等**：npm 侧不是"发完立刻可装"。实测有一次是**元数据（版本号、dist-tags）先出现，
+  而 tarball 仍 404 十几分钟**，期间 `pnpm add` 会报下载失败。对外宣布前用
+  `pnpm view dsh-plugin-mind-tree dist-tags` + 下载一次 tarball 校验 shasum 确认。
 - **发布"成功"但 `view version` 还是旧版**：说明这次发布会走成了 **staged**（`409 Cannot publish over
   previously staged version` 的同一状态），包已上传但 `latest` 标签没动。把标签指过去即可：
   `curl -X PUT -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
