@@ -7,8 +7,10 @@ const { MenuItemButton } = require('@deepseek-ai/dsh-client-ui-primitives');
 const { TYPERT_REMOTE } = require('../lib/remote.js');
 // 与宿主半区共享的导出格式化层(打包时内联,保证 GUI 导出与 mind_tree 工具输出完全一致)。
 const FMT = require('../lib/format.js');
-// 过程信息削减层:三档信息量(精简 / 标准 / 完整),渲染与导出共用。
+// 过程信息削减层:四档信息量(输入 / 精简 / 标准 / 完整),渲染与导出共用。
 const REDUCE = require('../lib/reduce.js');
+// 成本估算层:按模型单价 + 高峰/空闲时段把 token 折算成人民币。
+const PRICING = require('../lib/pricing.js');
 
 const h = React.createElement;
 
@@ -116,13 +118,29 @@ const MESSAGES = {
     'export.cancelled': '已取消',
     'export.failed': '导出失败',
     'warning': '兼容性提示',
+    'level.user': '输入',
     'level.compact': '精简',
     'level.standard': '标准',
     'level.full': '完整',
-    'level.hint': '信息量',
+    'level.hint': '信息量(输入 / 精简 / 标准 / 完整)',
+    'level.user.hint': '只留轮次、你的发言与分支点 —— 相当于把整场对话压成需求清单',
     'level.compact.hint': '只留轮次、你的发言、分支点、工具活动合计与每轮答复',
     'level.standard.hint': '在精简基础上,保留实质过程文本与每条工具调用(不含工具输出)',
     'level.full.hint': '全部节点,与事件日志一一对应',
+    'zoom.hint': 'Ctrl/⌘ + 滚轮缩放,拖动平移,双击回到整体',
+    'zoom.in': '放大',
+    'zoom.out': '缩小',
+    'zoom.fit': '适配',
+    'live.running': '运行中',
+    'live.hint': '该会话正在产生新事件,树会自动刷新并标出最新一轮',
+    'total.turns': '轮',
+    'total.costHint': '按模型官方单价估算(高峰/空闲时段自动切换)',
+    'cost.label': '成本',
+    'cost.model': '模型',
+    'cost.peak': '按高峰时段单价',
+    'cost.offPeak': '按空闲时段单价',
+    'export.svg': 'SVG 矢量图',
+    'export.png': 'PNG 图片',
     'node.toolgroup': '工具活动',
     'detail.grouped': '折叠的工具调用',
     'expand.short': '展开',
@@ -239,13 +257,29 @@ const MESSAGES = {
     'export.cancelled': 'Cancelled',
     'export.failed': 'Export failed',
     'warning': 'Compatibility',
+    'level.user': 'Input',
     'level.compact': 'Compact',
     'level.standard': 'Standard',
     'level.full': 'Full',
-    'level.hint': 'Detail level',
+    'level.hint': 'Detail level (Input / Compact / Standard / Full)',
+    'level.user.hint': 'Turns, your messages and branch points only — the session as a requirement list',
     'level.compact.hint': 'Turns, your messages, branch points, tool totals and each turn answer only',
     'level.standard.hint': 'Adds substantive process text and every tool call (no tool output)',
     'level.full.hint': 'Every node, one-to-one with the event log',
+    'zoom.hint': 'Ctrl/⌘ + wheel to zoom, drag to pan, double-click to fit',
+    'zoom.in': 'Zoom in',
+    'zoom.out': 'Zoom out',
+    'zoom.fit': 'Fit',
+    'live.running': 'Live',
+    'live.hint': 'This session is producing new events; the tree refreshes and marks the latest turn',
+    'total.turns': 'turns',
+    'total.costHint': 'Estimated from official model prices (peak / off-peak aware)',
+    'cost.label': 'Cost',
+    'cost.model': 'Model',
+    'cost.peak': 'Priced at peak hour',
+    'cost.offPeak': 'Priced at off-peak hour',
+    'export.svg': 'SVG vector',
+    'export.png': 'PNG image',
     'node.toolgroup': 'Tool activity',
     'detail.grouped': 'Folded tool calls',
     'expand.short': 'Expand',
@@ -719,7 +753,7 @@ function flattenFiltered(data, query) {
   return { rows, index, matches };
 }
 
-function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJump, t, palette }) {
+function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJump, t, palette, costs, live }) {
   const { node, depth, kidCount, collapsed } = row;
   const x = PAD_X + depth * INDENT;
   const railX = x + 7;
@@ -735,10 +769,13 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
   const shadowed = node.surface === 'shadowed';
   const isTurn = node.kind === 'turn';
   const usage = node.usage;
+  const cost = costs?.get(node.id);
 
   // 右侧元素从右向左排布,各自按实测宽度避让,互不重叠。
+  const tokenText = isTurn && usage ? fmtTokens(usage.total || usage.input + usage.output) : '';
+  const costText = cost && cost.cny > 0 ? PRICING.formatCny(cost.cny) : '';
   const metaText = isTurn && usage
-    ? `#${node.seq >= 0 ? node.seq : '—'} · ${usage.messageCount ?? 0}条${fmtTokens(usage.total || usage.input + usage.output) ? ` · ${fmtTokens(usage.total || usage.input + usage.output)} tok` : ''}`
+    ? `#${node.seq >= 0 ? node.seq : '—'} · ${usage.messageCount ?? 0}条${tokenText ? ` · ${tokenText} tok` : ''}${costText ? ` · ${costText}` : ''}`
     : `#${node.seq >= 0 ? node.seq : '—'} ${t(`node.${node.kind}`)}`;
   const metaWidth = measureText(metaText, 10.5) + 9;
   const metaX = rowWidth - 8 - metaWidth;
@@ -789,6 +826,15 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
       x, y: 2, width: rowWidth, height: ROW_H - 6, rx: 6, ry: 6,
       fill: 'none', stroke: '#b45309', strokeWidth: 1.2, strokeDasharray: '5 3',
     }),
+    // 实时高亮:正在跑的那一轮加虚线环 + 脉动圆点。
+    live && h('rect', {
+      x, y: 2, width: rowWidth, height: ROW_H - 6, rx: 6, ry: 6,
+      fill: 'none', stroke: 'var(--mt-live, #ef4444)', strokeWidth: 1.4, strokeDasharray: '5 4', opacity: 0.9,
+    }),
+    live && h('circle', {
+      className: 'mt-live-dot',
+      cx: x + 4, cy: ROW_H / 2, r: 3.2, fill: 'var(--mt-live, #ef4444)',
+    }),
     kidCount > 0 && h('g', {
       onClick: (event) => {
         event.stopPropagation();
@@ -837,7 +883,7 @@ function OutlineRow({ row, width, selected, highlighted, onSelect, onToggle, onJ
     h('title', null, title));
 }
 
-function TreeCanvas({ data, collapsed, query, onToggle, onSelect, onJump, selectedId, t, width, palette }) {
+function TreeCanvas({ data, collapsed, query, onToggle, onSelect, onJump, selectedId, t, width, palette, costs, liveTurn, zoom, onZoom, svgRef }) {
   const searching = typeof query === 'string' && query.trim() !== '';
   let rows;
   let index;
@@ -901,10 +947,84 @@ function TreeCanvas({ data, collapsed, query, onToggle, onSelect, onJump, select
     }));
   }
 
+  // ---- 缩放 / 平移:通过 viewBox 实现(矢量不糊)----
+  const contentH = Math.max(140, height);
+  const zooming = zoom && zoom.mode === 'custom';
+  const scale = zooming ? Math.min(4, Math.max(0.4, zoom.scale)) : 1;
+  const viewBox = zooming
+    ? `${zoom.x} ${zoom.y} ${canvasWidth / scale} ${contentH / scale}`
+    : `0 0 ${canvasWidth} ${contentH}`;
+  const dragRef = React.useRef(null);
+  const svgElRef = React.useRef(null);
+  const attachRef = (element) => {
+    svgElRef.current = element;
+    if (typeof svgRef === 'function') svgRef(element);
+    else if (svgRef) svgRef.current = element;
+  };
+  const localPoint = (event) => {
+    const element = svgElRef.current;
+    if (!element) return { fx: 0.5, fy: 0.5 };
+    const rect = element.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return { fx: 0.5, fy: 0.5 };
+    return {
+      fx: (event.clientX - rect.left) / rect.width,
+      fy: (event.clientY - rect.top) / rect.height,
+    };
+  };
+  const handleWheel = (event) => {
+    // 只有按住 Ctrl/⌘ 才缩放,否则交给原生滚动(列表式浏览手感)。
+    if (!(event.ctrlKey || event.metaKey)) return;
+    event.preventDefault();
+    const { fx, fy } = localPoint(event);
+    const direction = event.deltaY < 0 ? 1 : -1;
+    const nextScale = Math.min(4, Math.max(0.4, scale * (direction > 0 ? 1.15 : 1 / 1.15)));
+    const vbW = canvasWidth / scale;
+    const vbH = contentH / scale;
+    const baseX = zooming ? zoom.x : 0;
+    const baseY = zooming ? zoom.y : 0;
+    const anchorX = baseX + fx * vbW;
+    const anchorY = baseY + fy * vbH;
+    const nextW = canvasWidth / nextScale;
+    const nextH = contentH / nextScale;
+    onZoom?.({ mode: 'custom', scale: nextScale, x: anchorX - fx * nextW, y: anchorY - fy * nextH });
+  };
+  const handlePointerDown = (event) => {
+    if (!zooming) return;
+    if (event.button !== 0 && event.button !== 1) return;
+    dragRef.current = { startX: event.clientX, startY: event.clientY, originX: zoom.x, originY: zoom.y };
+    if (typeof event.currentTarget.setPointerCapture === 'function') {
+      try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* 忽略 */ }
+    }
+  };
+  const handlePointerMove = (event) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const element = svgElRef.current;
+    const rect = element?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return;
+    const unitsPerPxX = (canvasWidth / scale) / rect.width;
+    const unitsPerPxY = (contentH / scale) / rect.height;
+    onZoom?.({
+      mode: 'custom',
+      scale,
+      x: drag.originX - (event.clientX - drag.startX) * unitsPerPxX,
+      y: drag.originY - (event.clientY - drag.startY) * unitsPerPxY,
+    });
+  };
+  const handlePointerUp = () => { dragRef.current = null; };
+
   return h('svg', {
+    ref: attachRef,
     width: canvasWidth,
-    height: Math.max(140, height),
-    style: { display: 'block' },
+    height: contentH,
+    viewBox,
+    style: { display: 'block', cursor: zooming ? 'grab' : 'default' },
+    onWheel: handleWheel,
+    onPointerDown: handlePointerDown,
+    onPointerMove: handlePointerMove,
+    onPointerUp: handlePointerUp,
+    onPointerCancel: handlePointerUp,
+    onDoubleClick: zooming ? () => onZoom?.({ mode: 'fit', scale: 1, x: 0, y: 0 }) : undefined,
   },
     h('g', null,
       paths,
@@ -913,6 +1033,8 @@ function TreeCanvas({ data, collapsed, query, onToggle, onSelect, onJump, select
         selected: row.node.id === selectedId,
         highlighted: searching && matches.has(row.node.id),
         onSelect, onToggle, onJump, t, palette,
+        costs,
+        live: liveTurn != null && row.node.kind === 'turn' && row.node.turn === liveTurn,
       })),
       searching && rows.length === 0 && h('text', {
         x: canvasWidth / 2, y: 70, fontSize: 12, textAnchor: 'middle',
@@ -921,7 +1043,7 @@ function TreeCanvas({ data, collapsed, query, onToggle, onSelect, onJump, select
 }
 
 // ---------------- 详情面板 ----------------
-function DetailPanel({ node, detail, loadingDetail, onClose, onJump, onEvent, onOpenSession, onShowTree, onBack, canJump, showBack, t }) {
+function DetailPanel({ node, detail, loadingDetail, onClose, onJump, onEvent, onOpenSession, onShowTree, onBack, canJump, showBack, t, cost }) {
   const branch = node?.branch;
   return h('div', { className: 'mt-detail' },
     h('div', { className: 'mt-detail-head' },
@@ -942,6 +1064,12 @@ function DetailPanel({ node, detail, loadingDetail, onClose, onJump, onEvent, on
       h('span', { className: 'mt-chip' }, `${t('token.total')} ${fmtTokens(node.usage.total || node.usage.input + node.usage.output)}`),
       node.usage.messageCount != null && h('span', { className: 'mt-chip' }, `${t('token.messages')} ${node.usage.messageCount}`),
       (node.usage.durationMs ?? 0) > 0 && h('span', { className: 'mt-chip' }, `${t('token.duration')} ${fmtDuration(node.usage.durationMs)}`)),
+    (node?.usage?.model || cost) && h('div', { className: 'mt-detail-meta' },
+      node?.usage?.model && h('span', { className: 'mt-chip' }, `${t('cost.model')} ${node.usage.model}`),
+      cost && h('span', {
+        className: 'mt-chip',
+        title: cost.peak ? t('cost.peak') : t('cost.offPeak'),
+      }, `${t('cost.label')} ${cost.known === false ? '≈' : ''}${PRICING.formatCny(cost.cny)}`)),
     branch && h('div', { className: 'mt-detail-branch' },
       h('div', { className: 'mt-branch-title' }, `◆ ${branchLabel(branch.kind, t)}`),
       branch.kind === 'question' && Array.isArray(branch.detail?.questions) && h('div', null,
@@ -1137,6 +1265,13 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
     if (exportNoticeTimer.current !== null) clearTimeout(exportNoticeTimer.current);
   }, []);
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false);
+  // 视图缩放/平移:'fit' 为整体适配(默认),'custom' 为用户缩放后的视口。
+  const [zoom, setZoom] = React.useState({ mode: 'fit', scale: 1, x: 0, y: 0 });
+  const svgRef = React.useRef(null);
+  // 实时跟随:记录最近一次收到流帧的时间,用于"运行中"指示与静默刷新。
+  const [lastFrameAt, setLastFrameAt] = React.useState(0);
+  const [liveNow, setLiveNow] = React.useState(false);
+  const pendingRefresh = React.useRef(null);
   const exportMenuRef = React.useRef(null);
   // 配色:预设 + 自定义,持久化到 localStorage(换配色只改 .mt-root 上的 CSS 变量)。
   const [palette, setPalette] = React.useState(() => loadPalette());
@@ -1185,12 +1320,15 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
 
   const activeSession = targetSession ?? sessionId;
 
-  const load = React.useCallback((mode, session, abort) => {
+  const load = React.useCallback((mode, session, abort, options) => {
     if (!service) return;
+    const silent = options?.silent === true;
     DIAG.loadAttempts += 1;
     const startedAt = Date.now();
-    setLoading(true);
-    setError(null);
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     const call = mode === 'tree' ? service.tree(session, abort?.signal ?? undefined)
       : mode === 'lineage' ? service.lineage(session, abort?.signal ?? undefined)
         : service.forest(abort?.signal ?? undefined);
@@ -1226,11 +1364,31 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
     return () => controller.abort();
   }, [service, view, activeSession, tick]);
 
-  // 实时刷新:本会话有新事件时重新拉取;流中断自动重连。
+  // 实时跟随:本会话有新事件时**静默**重拉(不闪 loading),并节流到最多每 900ms 一次;
+  // 流中断自动重连。lastFrameAt 驱动"运行中"指示与"最新一轮"高亮。
+  const refreshRef = React.useRef(null);
+  refreshRef.current = () => {
+    const controller = new AbortController();
+    load(view, activeSession, controller, { silent: true });
+  };
   React.useEffect(() => {
     if (!service) return;
     const controller = new AbortController();
     let stopped = false;
+    let timer = null;
+    let dirty = false;
+    const flush = () => {
+      timer = null;
+      if (stopped) return;
+      if (!dirty) return;
+      dirty = false;
+      refreshRef.current?.();
+    };
+    const schedule = () => {
+      setLastFrameAt(Date.now());
+      dirty = true;
+      if (timer === null) timer = setTimeout(flush, 900);
+    };
     const run = async () => {
       let attempts = 0;
       while (!stopped && attempts < 12) {
@@ -1239,7 +1397,7 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
           for await (const rawFrame of service.follow(controller.signal)) {
             if (stopped) return;
             const frame = rawFrame && typeof rawFrame === 'object' && 'ok' in rawFrame && rawFrame.ok === true ? rawFrame.value : rawFrame;
-            if (frame?.sessionId === activeSession) setTick((n) => n + 1);
+            if (frame?.sessionId === activeSession) schedule();
           }
           return; // 正常结束
         } catch {
@@ -1250,8 +1408,20 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
       }
     };
     run();
-    return () => { stopped = true; controller.abort(); };
+    return () => {
+      stopped = true;
+      if (timer !== null) clearTimeout(timer);
+      controller.abort();
+    };
   }, [service, activeSession]);
+
+  // "运行中"指示:最近 2.5 秒内收到过流帧即视为正在跑。
+  React.useEffect(() => {
+    if (!lastFrameAt) return undefined;
+    setLiveNow(true);
+    const timer = setTimeout(() => setLiveNow(false), 2500);
+    return () => clearTimeout(timer);
+  }, [lastFrameAt]);
 
   const rawData = view === 'tree' ? treeData : view === 'lineage' ? lineageData : forestData;
   const displayed = React.useMemo(() => (view === 'tree' ? rawData : sessionsAsDisplay(rawData)), [view, rawData]);
@@ -1266,14 +1436,62 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
   const selectedNode = selected ? nodeMap.get(selected) : null;
   const canJump = activeSession === sessionId;
 
+  // 成本估算:按轮节点的 usage + 该轮模型 + 起始时间(高峰/空闲)折算。
+  const costs = React.useMemo(() => {
+    const map = new Map();
+    for (const node of nodes) {
+      if (node.kind !== 'turn' || !node.usage) continue;
+      map.set(node.id, PRICING.costOf(node.usage, node.usage.model, node.usage.startedAt));
+    }
+    return map;
+  }, [data]);
+  // 合计(仅"会话思维树"统计有意义)。
+  const totals = React.useMemo(() => {
+    if (view !== 'tree') return null;
+    let turns = 0;
+    let tokens = 0;
+    let cny = 0;
+    let unknown = false;
+    for (const node of nodes) {
+      if (node.kind !== 'turn' || !node.usage) continue;
+      turns += 1;
+      tokens += Number(node.usage.total || node.usage.input + node.usage.output) || 0;
+      const cost = costs.get(node.id);
+      if (cost) {
+        cny += cost.cny;
+        if (cost.known === false) unknown = true;
+      }
+    }
+    return turns > 0 ? { turns, tokens, cny, unknown } : null;
+  }, [view, data, costs]);
+  // 实时高亮:数据里最后一个轮次节点。
+  const liveTurn = React.useMemo(() => {
+    if (!liveNow || view !== 'tree') return null;
+    let max = null;
+    for (const node of nodes) {
+      if (node.kind !== 'turn' || typeof node.turn !== 'number') continue;
+      if (max === null || node.turn > max) max = node.turn;
+    }
+    return max;
+  }, [liveNow, view, data]);
+
   // 视图切换(血缘/森林的数据也按需加载)。
   const switchView = (next) => {
     setView(next);
     setSelected(null);
     setDetail(null);
     setQuery('');
+    setZoom({ mode: 'fit', scale: 1, x: 0, y: 0 });
     if (next === 'tree') setTargetSession(null);
   };
+
+  // 缩放:按钮式放大/缩小(以当前视口左上角为基准),或一键"适配"回到整体。
+  const zoomBy = (factor) => setZoom((current) => {
+    const base = current.mode === 'custom' ? current : { mode: 'custom', scale: 1, x: 0, y: 0 };
+    const nextScale = Math.min(4, Math.max(0.4, base.scale * factor));
+    return { ...base, scale: nextScale };
+  });
+  const fitZoom = () => setZoom({ mode: 'fit', scale: 1, x: 0, y: 0 });
 
   const fetchDetail = (node) => {
     // 工具活动聚合行是客户端合成的,没有宿主事件序号:展开折叠清单即可,不请求宿主。
@@ -1435,7 +1653,8 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
     onClick: () => setDetailLevel(level),
   }, t(`level.${level}`)));
 
-  const saveExport = async (content, fileName, mime, description, extensions) => {
+  const saveExport = async (content, fileName, mime, description, extensions, options) => {
+    const binary = options?.binary === true;
     if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
       try {
         const handle = await window.showSaveFilePicker({
@@ -1458,7 +1677,9 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
         // 继续走下载回退
       }
     }
-    const blob = new Blob([content], { type: `${mime};charset=utf-8` });
+    const blob = content instanceof Blob
+      ? content
+      : new Blob([content], { type: binary ? mime : `${mime};charset=utf-8` });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
@@ -1469,6 +1690,76 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     DIAG.lastExport = 'downloaded';
     setExportNotice(`${t('export.saved')}: ${fileName}`);
+  };
+
+  /** 图片导出的基础文件名。 */
+  const imageBaseName = () => `mind-tree-${String(activeSession ?? 'session').slice(0, 8)}`;
+
+  /**
+   * 把当前 SVG 克隆成"可独立打开"的矢量图:
+   * 内联配色 CSS 变量与字体栈 —— 否则脱离页面后 var() 会退回到内置默认色。
+   */
+  const buildStandaloneSvg = () => {
+    const element = svgRef.current;
+    if (!element) throw new Error('画布尚未就绪');
+    const clone = element.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const vars = COLOR_KINDS.map((key) => `${COLOR_VARS[key]}:${palette.colors[key]}`).join(';');
+    const fontFamily = '-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+    clone.setAttribute('style', `${vars};font-family:${fontFamily};background:#ffffff`);
+    const width = Number(element.getAttribute('width')) || 800;
+    const height = Number(element.getAttribute('height')) || 600;
+    // 导出总是整体视图(忽略当前缩放),白底,便于直接贴进文档。
+    clone.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    clone.setAttribute('width', String(width));
+    clone.setAttribute('height', String(height));
+    const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    background.setAttribute('x', '0');
+    background.setAttribute('y', '0');
+    background.setAttribute('width', '100%');
+    background.setAttribute('height', '100%');
+    background.setAttribute('fill', '#ffffff');
+    clone.insertBefore(background, clone.firstChild);
+    return { text: new XMLSerializer().serializeToString(clone), width, height };
+  };
+
+  const exportImage = async (kind) => {
+    try {
+      const { text, width, height } = buildStandaloneSvg();
+      if (kind === 'svg') {
+        await saveExport(text, `${imageBaseName()}.svg`, 'image/svg+xml', 'SVG 矢量图', ['.svg']);
+        return;
+      }
+      // PNG:先把 SVG 画到 canvas 上;按 2 倍像素保证清晰,超大画布时自动降倍率(canvas 有尺寸上限)。
+      const factor = Math.max(0.1, Math.min(2, 32000 / Math.max(1, height)));
+      const svgBlob = new Blob([text], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      let image;
+      try {
+        image = await new Promise((resolve, reject) => {
+          const element = new Image();
+          element.onload = () => resolve(element);
+          element.onerror = () => reject(new Error('SVG 解码失败'));
+          element.src = url;
+        });
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(width * factor));
+      canvas.height = Math.max(1, Math.round(height * factor));
+      const context = typeof canvas.getContext === 'function' ? canvas.getContext('2d') : null;
+      if (!context) throw new Error('当前环境不支持 canvas');
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((resolve) => { canvas.toBlob((result) => resolve(result), 'image/png'); });
+      if (!blob) throw new Error('PNG 生成失败');
+      await saveExport(blob, `${imageBaseName()}.png`, 'image/png', 'PNG 图片', ['.png'], { binary: true });
+    } catch (error) {
+      DIAG.lastExport = `image-failed:${error?.message ?? error}`;
+      setExportNotice(`${t('export.failed')}: ${error?.message ?? error}`);
+    }
   };
 
   /** 导出入口:mindmap(Mermaid 导图) / outline(大纲) / canvas(原生画布) / json。 */
@@ -1500,7 +1791,16 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
           className: `mt-status-chip ${failed ? 'mt-status-chip-bad' : service ? 'mt-status-chip-ok' : ''}`,
           title: failed ? String(DIAG.lastError ?? '') : '',
         }, failed ? t('status.failed') : service ? t('status.ready') : t('status.connecting')),
+        liveNow && h('span', { className: 'mt-live-chip', title: t('live.hint') }, `● ${t('live.running')}`),
         h('span', { className: 'mt-level-group', title: t('level.hint') }, levelButtons),
+        h('span', { className: 'mt-zoom-group', title: t('zoom.hint') },
+          h('button', { className: 'mt-btn mt-zoom-btn', onClick: () => zoomBy(1 / 1.25), title: t('zoom.out') }, '−'),
+          h('button', {
+            className: `mt-btn mt-zoom-btn ${zoom.mode === 'custom' ? 'mt-btn-on' : ''}`,
+            onClick: fitZoom,
+            title: t('zoom.fit'),
+          }, zoom.mode === 'custom' ? `${Math.round(zoom.scale * 100)}%` : t('zoom.fit')),
+          h('button', { className: 'mt-btn mt-zoom-btn', onClick: () => zoomBy(1.25), title: t('zoom.in') }, '+')),
         h('button', { className: 'mt-btn', onClick: expandAll, title: t('expandAll') }, t('expand.short')),
         h('button', { className: 'mt-btn', onClick: collapseAll, title: t('collapseAll') }, t('collapse.short')),
         h('div', { className: 'mt-menu-wrap', ref: paletteMenuRef },
@@ -1556,6 +1856,15 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
               className: 'mt-menu-item',
               onClick: () => { setExportMenuOpen(false); exportAs('canvas'); },
             }, t('export.canvas')),
+            h('div', { className: 'mt-menu-divider' }),
+            h('button', {
+              className: 'mt-menu-item',
+              onClick: () => { setExportMenuOpen(false); exportImage('svg'); },
+            }, t('export.svg')),
+            h('button', {
+              className: 'mt-menu-item',
+              onClick: () => { setExportMenuOpen(false); exportImage('png'); },
+            }, t('export.png')),
             h('div', { className: 'mt-menu-hint' }, t('export.hint')))),
         exportNotice && h('span', { className: 'mt-export-notice', title: exportNotice }, exportNotice.replace(/^[^:：]*[:：]\s*/, '').slice(0, 24)),
         h('button', { className: 'mt-btn', onClick: () => setTick((n) => n + 1), title: t('refresh') },
@@ -1569,6 +1878,14 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
         onChange: (event) => setQuery(event.target.value ?? ''),
       }),
       query && h('button', { className: 'mt-btn', onClick: () => setQuery('') }, '×')),
+    // 合计条:轮次 / token / 估算成本(单价随高峰-空闲时段自动切换)。
+    totals && h('div', { className: 'mt-total' },
+      h('span', { className: 'mt-total-item' }, `${totals.turns} ${t('total.turns')}`),
+      h('span', { className: 'mt-total-item' }, `${fmtTokens(totals.tokens)} tok`),
+      h('span', {
+        className: 'mt-total-item mt-total-cost',
+        title: `${t('total.costHint')} (${PRICING.PRICING_VERSION})`,
+      }, `${totals.unknown ? '≈' : ''}${PRICING.formatCny(totals.cny)}`)),
     activeSession && activeSession !== sessionId && h('div', { className: 'mt-breadcrumb' },
       h('button', { className: 'mt-btn', onClick: backToSession }, `‹ ${t('detail.backToSession')}`),
       h('span', { className: 'mt-breadcrumb-id' }, activeSession.slice(0, 12))),
@@ -1610,10 +1927,16 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
         selectedId: selected,
         t,
         width: canvasWidth,
+        costs,
+        liveTurn,
+        zoom,
+        onZoom: setZoom,
+        svgRef,
       }),
       data != null && nodes.length > 0 && h('div', { className: 'mt-hint' }, t('click.hint'))),
     selectedNode && h(DetailPanel, {
       node: selectedNode, detail, loadingDetail,
+      cost: costs.get(selectedNode.id),
       onClose: () => { setSelected(null); setDetail(null); },
       onJump: jumpToNode,
       onEvent: fetchDetail,
@@ -1677,6 +2000,16 @@ module.exports = {
 .mt-warn{margin:4px 8px 0;padding:5px 8px;border-radius:6px;font-size:10.5px;line-height:1.5;color:var(--dsw-alias-state-warning-primary,#b45309);background:color-mix(in srgb, var(--dsw-alias-state-warning-primary,#b45309) 12%, transparent);border:1px solid color-mix(in srgb, var(--dsw-alias-state-warning-primary,#b45309) 35%, transparent)}
 .mt-warn-title{font-weight:600}
 .mt-level-group{display:inline-flex;flex:0 0 auto;gap:2px;padding:1px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.04))}
+.mt-zoom-group{display:inline-flex;flex:0 0 auto;gap:2px;padding:1px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.04))}
+.mt-zoom-btn{padding:3px 6px;font-size:10.5px;min-width:24px;justify-content:center}
+.mt-zoom-btn.mt-btn-on{background:var(--dsw-alias-bg-layer-1,#fff);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.mt-live-chip{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;color:#fff;background:var(--mt-live,#ef4444);animation:mt-live-breathe 1.6s ease-in-out infinite}
+@keyframes mt-live-breathe{0%,100%{opacity:.65}50%{opacity:1}}
+.mt-live-dot{animation:mt-live-breathe 1.3s ease-in-out infinite}
+.mt-total{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:3px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.08));font-size:10.5px;color:var(--dsw-alias-label-secondary,#61666b);font-variant-numeric:tabular-nums}
+.mt-total-item{display:inline-flex;align-items:center;padding:1px 6px;border-radius:99px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.04))}
+.mt-total-cost{font-weight:600;color:var(--dsw-alias-label-primary,#111827)}
+.mt-menu-divider{height:1px;margin:3px 6px;background:var(--dsw-alias-border-l1,rgba(0,0,0,.08))}
 .mt-btn-level{padding:3px 6px;font-size:10.5px;opacity:.75}
 .mt-btn-level.mt-btn-on{opacity:1;background:var(--dsw-alias-bg-layer-1,#fff);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .mt-menu-wide{min-width:250px;max-height:70vh;overflow:auto}

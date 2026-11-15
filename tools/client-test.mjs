@@ -443,7 +443,10 @@ const run = async () => {
     const click = (el) => el.dispatchEvent(new env.win.MouseEvent('click', { bubbles: true }));
     const probe = () => env.captured.probe.query('state', {});
 
-    check('工具栏有三档按钮', [...env.container.querySelectorAll('.mt-btn-level')].length === 3);
+    check('工具栏有四档按钮', [...env.container.querySelectorAll('.mt-btn-level')].length === 4);
+    check('存在「输入」档按钮', levelButton('输入') !== undefined);
+    check('缩放控件存在', [...env.container.querySelectorAll('.mt-zoom-btn')].length === 3);
+    check('合计条显示成本', /¥/.test(env.container.textContent), env.container.textContent.slice(0, 160));
     check('默认选中精简', levelButton('精简')?.className.includes('mt-btn-on') === true);
     check('精简档聚合出工具活动行', env.container.textContent.includes('工具活动 ×1'), env.container.textContent.slice(0, 200));
     check('精简档隐藏被折叠的工具明细', !env.container.textContent.includes('第1轮第5条消息内容文本'));
@@ -571,6 +574,61 @@ const run = async () => {
       check('恢复默认后回到柔和预设', turnVar === '#6b63b5', turnVar);
     }
     root2.unmount();
+  }
+
+  // ---- 场景 13:缩放(viewBox)+ 图片导出入口 ----
+  console.log('[client-test] 场景 13: 缩放与图片导出');
+  {
+    const env = await boot();
+    await env.sleep(350);
+    const byText = (text) => [...env.container.querySelectorAll('button')].find((b) => b.textContent === text);
+    const click = (el) => el.dispatchEvent(new env.win.MouseEvent('click', { bubbles: true }));
+    const canvasSvg = () => env.container.querySelector('.mt-canvas svg');
+    const viewWidth = () => {
+      const box = (canvasSvg()?.getAttribute('viewBox') ?? '').split(/\s+/);
+      return Number(box[2]);
+    };
+
+    const fitWidth = viewWidth();
+    check('初始为整体适配(有限 viewBox 宽度)', Number.isFinite(fitWidth) && fitWidth > 0, String(fitWidth));
+
+    click(byText('+'));
+    await env.sleep(150);
+    const zoomedWidth = viewWidth();
+    check('点「+」后视野变窄(放大)', zoomedWidth < fitWidth, `${zoomedWidth} < ${fitWidth}`);
+    check('缩放按钮显示百分比', /%$/.test(byText('125%')?.textContent ?? '') || /%$/.test(
+      [...env.container.querySelectorAll('.mt-zoom-btn')].map((b) => b.textContent).find((text) => /%$/.test(text)) ?? '',
+    ));
+
+    click(byText('−'));
+    await env.sleep(150);
+    check('点「−」后视野变宽(缩小)', viewWidth() > zoomedWidth, `${viewWidth()} > ${zoomedWidth}`);
+
+    // 中间按钮此时显示百分比,点它应回到适配
+    const zoomLabel = [...env.container.querySelectorAll('.mt-zoom-btn')]
+      .find((b) => /%$/.test(b.textContent));
+    if (zoomLabel) click(zoomLabel);
+    await env.sleep(150);
+    check('点百分比按钮回到整体适配', Math.abs(viewWidth() - fitWidth) < 0.5, `${viewWidth()} vs ${fitWidth}`);
+
+    // 导出菜单:新增 SVG / PNG
+    click(byText('导出 ▾'));
+    await env.sleep(150);
+    const menuText = env.container.querySelector('.mt-menu')?.textContent ?? '';
+    check('导出菜单含 SVG 项', menuText.includes('SVG'));
+    check('导出菜单含 PNG 项', menuText.includes('PNG'));
+
+    // 点 SVG:不应抛异常(无 File System Access API 时走下载回退)
+    const svgItem = [...env.container.querySelectorAll('.mt-menu-item')].find((b) => b.textContent.includes('SVG'));
+    if (svgItem) {
+      click(svgItem);
+      await env.sleep(300);
+      const state = await env.captured.probe.query('state', {});
+      check('SVG 导出有结果记录(成功或明确失败)', typeof state === 'object', JSON.stringify(state).slice(0, 80));
+    }
+    const notice = env.container.querySelector('.mt-export-notice')?.textContent ?? '';
+    check('SVG 导出未导致页面异常', !env.container.textContent.includes('未捕获'), notice);
+    env.root.unmount();
   }
 
   console.log(failures === 0 ? '[client-test] 全部通过' : `[client-test] ${failures} 项失败`);

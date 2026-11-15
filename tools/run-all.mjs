@@ -8,8 +8,9 @@ import { dirname, join } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const suites = [
   { name: 'host', file: 'host-test.mjs', desc: '宿主分析引擎(合成/畸形事件、token 聚合、替换语义、工具契约)' },
-  { name: 'reduce', file: 'reduce-test.mjs', desc: '过程信息削减层(三档策略、骨架保留、重新挂接)' },
-  { name: 'client', file: 'client-test.mjs', desc: '客户端交互(渲染/跳转/搜索/导出/错误路径/三档切换)' },
+  { name: 'reduce', file: 'reduce-test.mjs', desc: '过程信息削减层(四档策略、骨架保留、重新挂接)' },
+  { name: 'pricing', file: 'pricing-test.mjs', desc: '成本估算层(高峰/空闲单价、折算、整树聚合)' },
+  { name: 'client', file: 'client-test.mjs', desc: '客户端交互(渲染/跳转/搜索/导出/错误路径/档位切换/缩放/成本)' },
   { name: 'mount', file: 'mount-test.mjs', desc: '完整挂载 smoke test' },
   { name: 'render', file: 'render-test.mjs', desc: 'SSR 渲染 smoke test' },
   { name: 'integration', file: 'integration-test.mjs', desc: '真实 cordis + ToolRuntime 集成(需 DSH 解包目录,缺失自动跳过)' },

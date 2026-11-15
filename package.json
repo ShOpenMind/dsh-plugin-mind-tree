@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-mind-tree",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "遍历对话上下文，识别分支节点并渲染思维树/会话树的 DeepSeek Harness 插件（右侧栏 GUI + mind_tree 工具 + Obsidian 导出）。",
   "type": "module",
   "license": "MIT",
@@ -17,9 +17,15 @@
     "./typert": "./lib/typert.host.js",
     "./remote": "./lib/remote.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./pricing": "./lib/pricing.js"
   },
-  "files": ["lib", "cordis.patch.yml", "README.md", "LICENSE"],
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ShOpenMind/dsh-plugin-mind-tree.git"
@@ -28,7 +34,17 @@
   "bugs": {
     "url": "https://github.com/ShOpenMind/dsh-plugin-mind-tree/issues"
   },
-  "keywords": ["dsh", "deepseek-harness", "plugin", "mindmap", "session-tree", "observability", "dsh-plugin", "dsh-bundle", "dsh-market"],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "mindmap",
+    "session-tree",
+    "observability",
+    "dsh-plugin",
+    "dsh-bundle",
+    "dsh-market"
+  ],
   "dependencies": {
     "zod": "^4.4.0"
   },
@@ -58,9 +74,13 @@
       "optional": true
     }
   },
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "inject": [

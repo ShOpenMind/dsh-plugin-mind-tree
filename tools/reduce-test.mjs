@@ -128,7 +128,16 @@ console.log('[reduce-test] 边界');
   };
   const reduced = reduceGraph(orphan, 'compact');
   check('孤立节点回落到所属轮次', reduced.edges.some((e) => e.from === 't1' && e.to === 'x1'), JSON.stringify(reduced.edges));
-  check('DETAIL_LEVELS 三档', DETAIL_LEVELS.length === 3);
+  check('DETAIL_LEVELS 四档(输入在最前)', DETAIL_LEVELS.length === 4 && DETAIL_LEVELS[0] === 'user', JSON.stringify(DETAIL_LEVELS));
+  const userOnly = reduceGraph(tree, 'user');
+  check('user 档不保留非分支的助手/工具/结果行',
+    !userOnly.nodes.some((n) => !n.branch && (n.kind === 'assistant' || n.kind === 'tool' || n.kind === 'result')),
+    userOnly.nodes.map((n) => `${n.kind}${n.branch ? '(分支)' : ''}`).join(','));
+  check('user 档保留轮次与用户发言',
+    userOnly.nodes.some((n) => n.kind === 'turn') && userOnly.nodes.some((n) => n.kind === 'user'));
+  check('user 档比精简档更少', userOnly.nodes.length < reduceGraph(tree, 'compact').nodes.length,
+    `${userOnly.nodes.length} vs ${reduceGraph(tree, 'compact').nodes.length}`);
+  check('user 档不生成工具活动聚合行', !userOnly.nodes.some((n) => n.kind === 'toolgroup'));
   check('processNodeCount 统计过程信息', processNodeCount(tree) === 10, String(processNodeCount(tree)));
 }
 

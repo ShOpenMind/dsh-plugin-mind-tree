@@ -201,7 +201,9 @@ console.log('[host-test] 校验 mind_tree 工具…');
 const tool = capturedTools.find((definition) => definition.name === 'mind_tree');
 check('已注册 mind_tree 工具', tool !== undefined, `实际注册 ${capturedTools.map((d) => d.name).join(',')}`);
 check('工具参数为 JSON Schema', tool?.parameters?.type === 'object' && tool.parameters.properties?.format?.enum?.length === 4);
-check('工具参数含 level 档位', tool?.parameters?.properties?.level?.enum?.length === 3);
+check('工具参数含 level 档位', tool?.parameters?.properties?.level?.enum?.length === 4
+  && tool.parameters.properties.level.enum.includes('user'),
+  JSON.stringify(tool?.parameters?.properties?.level?.enum));
 check('工具声明输出渲染器', typeof tool?.output?.render === 'function');
 check('工具 schema 含全部参数', ['sessionId', 'format', 'view', 'writeTo', 'level'].every((key) => key in (tool?.parameters?.properties ?? {})));
 check('输出 schema 为合法 JSON Schema(顶层 required)', Array.isArray(tool?.output?.schema?.required)
