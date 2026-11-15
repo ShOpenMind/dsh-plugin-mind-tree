@@ -128,7 +128,7 @@ console.log('[reduce-test] 边界');
   };
   const reduced = reduceGraph(orphan, 'compact');
   check('孤立节点回落到所属轮次', reduced.edges.some((e) => e.from === 't1' && e.to === 'x1'), JSON.stringify(reduced.edges));
-  check('DETAIL_LEVELS 四档(输入在最前)', DETAIL_LEVELS.length === 4 && DETAIL_LEVELS[0] === 'user', JSON.stringify(DETAIL_LEVELS));
+  check('DETAIL_LEVELS 四档(提问档在最前)', DETAIL_LEVELS.length === 4 && DETAIL_LEVELS[0] === 'user', JSON.stringify(DETAIL_LEVELS));
   const userOnly = reduceGraph(tree, 'user');
   check('user 档不保留非分支的助手/工具/结果行',
     !userOnly.nodes.some((n) => !n.branch && (n.kind === 'assistant' || n.kind === 'tool' || n.kind === 'result')),

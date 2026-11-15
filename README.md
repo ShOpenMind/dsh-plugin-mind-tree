@@ -20,7 +20,7 @@
 
   | 档位 | 保留内容 | 真实会话实测（**146 轮 / 6499 节点**） |
   |---|---|---|
-  | **输入** | 轮次 + 你的真实发言 + 分支点（= 把整场对话压成需求清单） | **563 节点**，大纲 48 KB |
+  | **提问** | 轮次 + 你的真实发言 + 分支点（= 把整场对话压成需求清单） | **563 节点**，大纲 48 KB |
   | **精简**（默认） | 轮次 + 你的真实发言 + 全部分支点 + 每轮「工具活动 ×N」聚合行 + 每轮答复 | **840 节点**，大纲 79 KB |
   | **标准** | 精简 + 实质性过程文本（≥60 字）与每条工具调用（不含工具输出） | 4145 节点，413 KB |
   | **完整** | 全部节点，与事件日志一一对应 | 6499 节点，723 KB |
@@ -98,7 +98,7 @@
 ```sh
 dsh plugin install dsh-plugin-mind-tree
 # 需要指定版本时(新版本刚发布、镜像缓存还没刷新时尤其有用)
-dsh plugin install dsh-plugin-mind-tree@0.4.0
+dsh plugin install dsh-plugin-mind-tree@0.4.1
 ```
 
 或在 Harness 的「插件」面板里搜索 `dsh-plugin-mind-tree`。
@@ -231,7 +231,7 @@ pnpm run test:host     # 只跑某套:host / reduce / client / mount / render / 
 |---|---|
 | `lib/index.js` | 宿主分析引擎 + `mind_tree` 工具注册 + 能力探测 |
 | `lib/format.js` | 共享导出格式化层（Mermaid 导图 / 大纲 / Obsidian 画布 / JSON） |
-| `lib/reduce.js` | 过程信息削减层（精简 / 标准 / 完整三档，纯函数） |
+| `lib/reduce.js` | 过程信息削减层（提问 / 精简 / 标准 / 完整四档，纯函数） |
 | `lib/remote.js` / `lib/typert.host.js` | Typert 远程契约与清单 |
 | `src/client.js` | 网页客户端源码（右侧栏标签页、SVG 渲染、导出菜单） |
 | `tools/*.mjs` | 构建、测试与本地诊断脚本 |
@@ -240,8 +240,8 @@ pnpm run test:host     # 只跑某套:host / reduce / client / mount / render / 
 ### 测试说明
 
 - `host-test`：合成 + 畸形事件下的宿主鲁棒性、token 聚合、替换语义（含"整段重写"保护）、工具契约；
-- `reduce-test`：三档削减策略、骨架保留、边重建、边界情形；
-- `client-test`：完整挂载后的交互（渲染/跳转/搜索/导出/错误路径/三档切换、真实 Mermaid 解析校验）；
+- `reduce-test`：四档削减策略、骨架保留、边重建、边界情形；
+- `client-test`：完整挂载后的交互（渲染/跳转/搜索/导出/错误路径/四档切换、选中态对比度规则、真实 Mermaid 解析校验）；
 - `integration-test`：**真实 cordis + 真实 ToolRuntime**（验证工具注册契约，跨版本升级的第一道防线）。
   需要 DSH 解包目录，默认取 `../asar-src/dsh/node_modules`，可用 `DSH_DSH_NODE_MODULES` 覆盖；缺失时自动跳过。
 - `verify` / `export-real` / `level-report`：针对**真实会话日志**的本地诊断，会话目录默认
@@ -252,7 +252,7 @@ pnpm run test:host     # 只跑某套:host / reduce / client / mount / render / 
 - 宿主半区通过 `ctx.sessionQuery` 只读访问会话日志与血统（`readSession`、`traceSession`、
   `readEvent`、`filterSessions`、`readTitle*`），并把分析结果以 Typert 远程服务
   `mindTree` 暴露给客户端（`forest` / `lineage` / `tree` / `detail` / `follow`）；
-- 客户端半区在右侧栏注册「思维树」标签页，用 SVG 渲染树（折叠/搜索/导出/三档信息量）。
+- 客户端半区在右侧栏注册「思维树」标签页，用 SVG 渲染树（折叠/搜索/缩放/导出/四档信息量）。
 
 本插件只读会话数据：不写入会话、不发起模型调用、不上传任何数据。
 
@@ -310,6 +310,11 @@ node <runtime>/dependencies/pnpm/bin/pnpm.mjs view dsh-plugin-mind-tree version
   或改用 **Granular Access Token**（权限 Read and write + 允许绕过 2FA）写入 `~/.npmrc`:
   `//registry.npmjs.org/:_authToken=<token>`；
 - `repository` / `files` / `peerDependencies` 已配置妥当，npm 页面会自动展示仓库与依赖信息。
+- **发布"成功"但 `view version` 还是旧版**：说明这次发布会走成了 **staged**（`409 Cannot publish over
+  previously staged version` 的同一状态），包已上传但 `latest` 标签没动。把标签指过去即可：
+  `curl -X PUT -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '"<X.Y.Z>"' https://registry.npmjs.org/-/package/dsh-plugin-mind-tree/dist-tags/latest`（204 = 成功），
+  然后确认 `pnpm view dsh-plugin-mind-tree dist-tags` 里 `latest` 已是新版。
 
 ## 第三方依赖与许可
 

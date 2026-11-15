@@ -118,11 +118,11 @@ const MESSAGES = {
     'export.cancelled': '已取消',
     'export.failed': '导出失败',
     'warning': '兼容性提示',
-    'level.user': '输入',
+    'level.user': '提问',
     'level.compact': '精简',
     'level.standard': '标准',
     'level.full': '完整',
-    'level.hint': '信息量(输入 / 精简 / 标准 / 完整)',
+    'level.hint': '信息量(提问 / 精简 / 标准 / 完整)',
     'level.user.hint': '只留轮次、你的发言与分支点 —— 相当于把整场对话压成需求清单',
     'level.compact.hint': '只留轮次、你的发言、分支点、工具活动合计与每轮答复',
     'level.standard.hint': '在精简基础上,保留实质过程文本与每条工具调用(不含工具输出)',
@@ -257,11 +257,11 @@ const MESSAGES = {
     'export.cancelled': 'Cancelled',
     'export.failed': 'Export failed',
     'warning': 'Compatibility',
-    'level.user': 'Input',
+    'level.user': 'Questions',
     'level.compact': 'Compact',
     'level.standard': 'Standard',
     'level.full': 'Full',
-    'level.hint': 'Detail level (Input / Compact / Standard / Full)',
+    'level.hint': 'Detail level (Questions / Compact / Standard / Full)',
     'level.user.hint': 'Turns, your messages and branch points only — the session as a requirement list',
     'level.compact.hint': 'Turns, your messages, branch points, tool totals and each turn answer only',
     'level.standard.hint': 'Adds substantive process text and every tool call (no tool output)',
@@ -1645,7 +1645,7 @@ function MindTreeBodyInner({ ctx, sessionId, signal, uiWorkspace }) {
     onClick: () => switchView(mode),
   }, t(`view.${mode}`)));
 
-  // 信息量三档:精简(默认)/ 标准 / 完整。
+  // 信息量四档:提问 / 精简(默认)/ 标准 / 完整。
   const levelButtons = REDUCE.DETAIL_LEVELS.map((level) => h('button', {
     key: level,
     className: `mt-btn mt-btn-level ${detailLevel === level ? 'mt-btn-on' : ''}`,
@@ -2002,7 +2002,8 @@ module.exports = {
 .mt-level-group{display:inline-flex;flex:0 0 auto;gap:2px;padding:1px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.04))}
 .mt-zoom-group{display:inline-flex;flex:0 0 auto;gap:2px;padding:1px;border-radius:7px;background:var(--dsw-alias-bg-layer-2,rgba(0,0,0,.04))}
 .mt-zoom-btn{padding:3px 6px;font-size:10.5px;min-width:24px;justify-content:center}
-.mt-zoom-btn.mt-btn-on{background:var(--dsw-alias-bg-layer-1,#fff);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+/* 选中态只补阴影与字重,底色/字色沿用 .mt-btn-on(反色),避免浅底配浅字看不出档位。 */
+.mt-zoom-btn.mt-btn-on{box-shadow:0 1px 2px rgba(0,0,0,.18)}
 .mt-live-chip{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;color:#fff;background:var(--mt-live,#ef4444);animation:mt-live-breathe 1.6s ease-in-out infinite}
 @keyframes mt-live-breathe{0%,100%{opacity:.65}50%{opacity:1}}
 .mt-live-dot{animation:mt-live-breathe 1.3s ease-in-out infinite}
@@ -2011,7 +2012,7 @@ module.exports = {
 .mt-total-cost{font-weight:600;color:var(--dsw-alias-label-primary,#111827)}
 .mt-menu-divider{height:1px;margin:3px 6px;background:var(--dsw-alias-border-l1,rgba(0,0,0,.08))}
 .mt-btn-level{padding:3px 6px;font-size:10.5px;opacity:.75}
-.mt-btn-level.mt-btn-on{opacity:1;background:var(--dsw-alias-bg-layer-1,#fff);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.mt-btn-level.mt-btn-on{opacity:1;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.18)}
 .mt-menu-wide{min-width:250px;max-height:70vh;overflow:auto}
 .mt-menu-title{padding:4px 9px 2px;font-size:10.5px;font-weight:600;color:var(--dsw-alias-label-secondary,#61666b)}
 .mt-preset-row{display:flex;gap:4px;padding:2px 6px 6px}

@@ -19,6 +19,75 @@ function check(name, condition, detail = '') {
 
 const ok = (value) => ({ ok: true, value });
 
+/** 把 CSS 颜色解析成 [r,g,b](支持 #rgb / #rrggbb / rgb() / rgba())。 */
+function parseColor(value) {
+  const s = String(value ?? '').trim().toLowerCase();
+  if (s.startsWith('#')) {
+    const hex = s.slice(1);
+    const full = hex.length === 3 || hex.length === 4 ? hex.split('').map((c) => c + c).join('') : hex;
+    if (full.length < 6) return null;
+    const n = Number.parseInt(full.slice(0, 6), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  const m = s.match(/rgba?\(([^)]+)\)/);
+  if (!m) return null;
+  const parts = m[1].split(/[,/\s]+/).filter(Boolean).slice(0, 3).map(Number);
+  return parts.length === 3 && parts.every((n) => Number.isFinite(n)) ? parts : null;
+}
+
+/** WCAG 相对亮度与对比度。 */
+function relativeLuminance([r, g, b]) {
+  const channel = (c) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+function contrastRatio(fg, bg) {
+  const a = relativeLuminance(fg);
+  const b = relativeLuminance(bg);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/** 深/浅两套主题的关键 token(与 DSH 主题取色一致的明暗两向)。 */
+const THEMES = {
+  dark: {
+    '--dsw-alias-brand-primary': '#f9fafb',
+    '--dsw-alias-label-primary-foreground': '#0f1115',
+    '--dsw-alias-bg-layer-1': '#232324',
+    '--dsw-alias-bg-layer-2': '#1b1c1d',
+    '--dsw-alias-label-primary': '#f9fafb',
+    '--dsw-alias-label-secondary': '#cfd3d6',
+  },
+  light: {
+    '--dsw-alias-brand-primary': '#0f1115',
+    '--dsw-alias-label-primary-foreground': '#ffffff',
+    '--dsw-alias-bg-layer-1': '#fafafa',
+    '--dsw-alias-bg-layer-2': '#f3f4f6',
+    '--dsw-alias-label-primary': '#0f1115',
+    '--dsw-alias-label-secondary': '#61666b',
+  },
+};
+
+// ---- 样式静态检查:选中态不许只换底色不换字色(否则浅底浅字,看不出选中了哪档) ----
+{
+  console.log('[client-test] 场景 0: 选中态对比度规则');
+  const src = readFileSync(join(here, '..', 'src', 'client.js'), 'utf8');
+  const start = src.indexOf('style.textContent = `');
+  const end = src.indexOf('`;', start);
+  check('能定位到注入的样式块', start > 0 && end > start, `start=${start} end=${end}`);
+  const css = src.slice(start, end);
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ sel: m[1].trim(), decl: m[2] }));
+  const onRules = rules.filter((r) => /\.mt-btn-on(?![\w-])/.test(r.sel));
+  const hasBg = (decl) => /(^|;)\s*background(-color)?\s*:/.test(decl);
+  const hasColor = (decl) => /(^|;)\s*color\s*:/.test(decl);
+  const bad = onRules.filter((r) => hasBg(r.decl) && !hasColor(r.decl));
+  check('选中态样式不覆盖底色而漏写字色', bad.length === 0, bad.map((r) => r.sel).join(' | '));
+  check('四档按钮与缩放按钮都没有另改底色的选中规则',
+    !onRules.some((r) => /mt-(btn-level|zoom-btn)/.test(r.sel) && hasBg(r.decl)),
+    onRules.map((r) => r.sel).join(' | '));
+}
+
 /** 合成 3 轮 × 6 节点的树,轮次带 usage,消息带 turn。 */
 function buildFixture() {
   const nodes = [{ id: 'root', seq: -1, type: 'root', kind: 'info', label: '测试会话', surface: 'current' }];
@@ -163,6 +232,36 @@ const run = async () => {
     check('探针 reducedNodeCount=19(精简档削减后)', probe.reducedNodeCount === 19, `实际 ${probe.reducedNodeCount}`);
     check('默认信息量档位为 compact', probe.detailLevel === 'compact', String(probe.detailLevel));
     check('探针 renderedRows(默认折叠)= 9', probe.renderedRows === 9, `实际 ${probe.renderedRows}`);
+    env.root.unmount();
+  }
+
+  // ---- 场景 1b:选中档位在深/浅两套主题下的真实渲染色与对比度 ----
+  console.log('[client-test] 场景 1b: 选中档位的实际对比度');
+  {
+    const env = await boot();
+    await env.sleep(350);
+    const rootStyle = env.win.document.documentElement.style;
+    const activeChip = () => [...env.container.querySelectorAll('.mt-btn-level')].find((b) => b.className.includes('mt-btn-on'));
+    for (const [name, tokens] of Object.entries(THEMES)) {
+      for (const [key, value] of Object.entries(tokens)) rootStyle.setProperty(key, value);
+      const chip = activeChip();
+      if (!chip) { check(`${name}:找到选中档位按钮`, false, '未找到 .mt-btn-on'); continue; }
+      const cs = env.win.getComputedStyle(chip);
+      const fg = parseColor(cs.color);
+      const bg = parseColor(cs.backgroundColor);
+      const ratio = fg && bg ? contrastRatio(fg, bg) : 0;
+      check(`${name}:选中档位用品牌色底 + 前景字色`,
+        cs.backgroundColor.toLowerCase() === tokens['--dsw-alias-brand-primary'].toLowerCase()
+        && cs.color.toLowerCase() === tokens['--dsw-alias-label-primary-foreground'].toLowerCase(),
+        `${cs.color} on ${cs.backgroundColor}`);
+      check(`${name}:选中档位文字对比度 ≥ 4.5`, ratio >= 4.5, `${cs.color} on ${cs.backgroundColor} = ${ratio.toFixed(2)}`);
+      check(`${name}:选中档位显示档位名`, chip.textContent.trim().length > 0, chip.textContent);
+      // 未选中的档位也要读得出来(浅色字压在深色底上)
+      const idle = [...env.container.querySelectorAll('.mt-btn-level')].find((b) => !b.className.includes('mt-btn-on'));
+      const idleCs = env.win.getComputedStyle(idle);
+      const idleRatio = contrastRatio(parseColor(idleCs.color), parseColor(idleCs.backgroundColor));
+      check(`${name}:未选中档位文字对比度 ≥ 4.5`, idleRatio >= 4.5, `${idleCs.color} on ${idleCs.backgroundColor} = ${idleRatio.toFixed(2)}`);
+    }
     env.root.unmount();
   }
 
@@ -444,7 +543,7 @@ const run = async () => {
     const probe = () => env.captured.probe.query('state', {});
 
     check('工具栏有四档按钮', [...env.container.querySelectorAll('.mt-btn-level')].length === 4);
-    check('存在「输入」档按钮', levelButton('输入') !== undefined);
+    check('存在「提问」档按钮', levelButton('提问') !== undefined);
     check('缩放控件存在', [...env.container.querySelectorAll('.mt-zoom-btn')].length === 3);
     check('合计条显示成本', /¥/.test(env.container.textContent), env.container.textContent.slice(0, 160));
     check('默认选中精简', levelButton('精简')?.className.includes('mt-btn-on') === true);
