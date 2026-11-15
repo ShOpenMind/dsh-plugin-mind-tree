@@ -98,7 +98,7 @@
 ```sh
 dsh plugin install dsh-plugin-mind-tree
 # 需要指定版本时(新版本刚发布、镜像缓存还没刷新时尤其有用)
-dsh plugin install dsh-plugin-mind-tree@0.4.1
+dsh plugin install dsh-plugin-mind-tree@0.4.2
 ```
 
 或在 Harness 的「插件」面板里搜索 `dsh-plugin-mind-tree`。
